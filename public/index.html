@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Creator AI - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Video Creator AI v1.1</h1>
+            <p>AI-Powered Viral Video Creation System</p>
+        </header>
+        <main>
+            <div class="status-box">
+                <h2>System Status</h2>
+                <div id="status">Loading...</div>
+            </div>
+            <div class="engines">
+                <h2>6 AI Engines</h2>
+                <div class="engine-grid">
+                    <div class="engine"><h3>📊 Trends Analyzer</h3></div>
+                    <div class="engine"><h3>✍️ Script Generator</h3></div>
+                    <div class="engine"><h3>🔥 Viral Scraper</h3></div>
+                    <div class="engine"><h3>🎯 Content Replicator</h3></div>
+                    <div class="engine"><h3>🇰🇷 Korean Adapter</h3></div>
+                    <div class="engine"><h3>📱 Multi-Publisher</h3></div>
+                </div>
+            </div>
+            <div class="controls">
+                <button onclick="alert('Running...')">🚀 Run Analysis</button>
+                <button onclick="alert('Generating...')">✍️ Generate Script</button>
+                <button onclick="alert('Finding...')">🔥 Find Viral</button>
+                <button onclick="alert('Publishing...')">📤 Publish</button>
+            </div>
+        </main>
+        <footer>
+            <p>Video Creator AI © 2026</p>
+        </footer>
+    </div>
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                document.getElementById('status').innerHTML = `<p>✅ ${data.status}</p>`;
+            } catch (error) {
+                document.getElementById('status').innerHTML = '<p>❌ Server not responding</p>';
+            }
+        }
+        window.onload = loadStats;
+    </script>
+</body>
+</html>
