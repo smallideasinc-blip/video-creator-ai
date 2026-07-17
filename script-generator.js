@@ -1,7 +1,7 @@
 // SCRIPT GENERATOR ENGINE v1.1
 // Génère des scripts vidéo via Claude API
 
-const fetch = require('node-fetch');
+
 
 class ScriptGenerator {
   constructor(apiKey) {

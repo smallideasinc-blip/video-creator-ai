@@ -1,5 +1,5 @@
 // KOREAN CONTENT ADAPTER ENGINE v1.1
-// Détecte et adapte le contenu coréen en FR + ENconst fetch = require('node-fetch');
+// Détecte et adapte le contenu coréen en FR + EN
 
 
 class KoreanContentAdapter {

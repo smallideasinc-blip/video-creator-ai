@@ -1,8 +1,8 @@
 // CONTENT REPLICATOR ENGINE v1.1
-// Réplique les concepts viraux sans plagier (génère du NOUVEAU contenu)const fetch = require('node-fetch');
+// Réplique les concepts viraux sans plagier (génère du NOUVEAU contenu)
 const mongoose = require('mongoose');
 
-const fetch = require('node-fetch');
+
 
 class ContentReplicator {
   constructor(apiKey) {
