@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎬 Video Creator AI v1.1</h1>
+            <h1>🎬 Video Creator AI v1.2</h1>
             <p>AI-Powered Viral Video Creation System</p>
         </header>
         <main>
@@ -29,14 +29,19 @@
                 </div>
             </div>
             <div class="controls">
-                <button onclick="alert('Running...')">🚀 Run Analysis</button>
-                <button onclick="alert('Generating...')">✍️ Generate Script</button>
-                <button onclick="alert('Finding...')">🔥 Find Viral</button>
-                <button onclick="alert('Publishing...')">📤 Publish</button>
+                <button id="btn-pipeline" onclick="runPipeline()">🚀 Pipeline Complet</button>
+                <button id="btn-analyze" onclick="runAnalysis()">📊 Analyser Tendances</button>
+                <button id="btn-script" onclick="generateScript()">✍️ Générer Script</button>
+                <button id="btn-viral" onclick="findViral()">🔥 Vidéos Virales</button>
+                <button id="btn-publish" onclick="publishContent()">📤 Publier</button>
+            </div>
+            <div class="status-box" id="result-box" style="display:none; margin-top: 30px;">
+                <h2 id="result-title">Résultat</h2>
+                <pre id="result" style="white-space: pre-wrap; font-family: inherit;"></pre>
             </div>
         </main>
         <footer>
-            <p>Video Creator AI © 2026</p>
+            <p>Video Creator AI © 2026 | Powered by Claude API</p>
         </footer>
     </div>
     <script>
@@ -44,11 +49,112 @@
             try {
                 const response = await fetch('/api/stats');
                 const data = await response.json();
-                document.getElementById('status').innerHTML = `<p>✅ ${data.status}</p>`;
+                document.getElementById('status').innerHTML = `
+                    <p><strong>Status:</strong> ${data.status}</p>
+                    <p><strong>Clé API Claude:</strong> ${data.apiKeyConfigured ? '✅ configurée' : '❌ manquante'}</p>
+                    <p><strong>Scripts générés:</strong> ${data.scriptsGenerated}</p>
+                    <p><strong>Vidéos trouvées:</strong> ${data.videosFound}</p>
+                    <p><strong>Tendances analysées:</strong> ${data.trendsAnalyzed}</p>
+                    <p><strong>Publications:</strong> ${data.contentPublished}</p>
+                    <p><strong>Heure serveur:</strong> ${data.uptime}</p>
+                `;
             } catch (error) {
                 document.getElementById('status').innerHTML = '<p>❌ Server not responding</p>';
             }
         }
+
+        function showResult(title, text) {
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('result-title').textContent = title;
+            document.getElementById('result').textContent = text;
+            loadStats();
+        }
+
+        function setBusy(busy) {
+            document.querySelectorAll('.controls button').forEach(b => b.disabled = busy);
+        }
+
+        async function callApi(path, body) {
+            setBusy(true);
+            try {
+                const response = await fetch(path, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body || {})
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erreur serveur');
+                return data;
+            } finally {
+                setBusy(false);
+            }
+        }
+
+        async function runPipeline() {
+            showResult('🚀 Pipeline Complet', 'Exécution en cours... (peut prendre ~30 secondes)');
+            try {
+                const data = await callApi('/api/run-pipeline');
+                let text = '';
+                if (data.script) text += `📝 SCRIPT GÉNÉRÉ (${data.script.topic}):\n\n${data.script.script}\n\n`;
+                if (data.viral) text += `🔥 TOP VIDÉO VIRALE: ${data.viral.title} (${data.viral.viralScore}/100)\n\n`;
+                if (data.published) text += `📤 Publié sur: ${data.published.platforms.map(p => p.platform).join(', ')}`;
+                showResult('🚀 Pipeline Terminé', text || 'Pipeline exécuté.');
+            } catch (error) {
+                showResult('❌ Erreur', error.message);
+            }
+        }
+
+        async function runAnalysis() {
+            showResult('📊 Tendances', 'Analyse en cours...');
+            try {
+                const data = await callApi('/api/analyze');
+                const text = data.trends.map(t =>
+                    `📈 ${t.category}\n   Mots-clés: ${t.keywords.join(', ')}\n   Croissance: ${t.growth} | Viralité: ${t.virality}/100`
+                ).join('\n\n');
+                showResult('📊 Tendances Analysées', text);
+            } catch (error) {
+                showResult('❌ Erreur', error.message);
+            }
+        }
+
+        async function generateScript() {
+            const topic = prompt('Sujet du script (laisser vide = tendance du moment):') ;
+            if (topic === null) return;
+            showResult('✍️ Génération', 'Claude rédige le script... (~15 secondes)');
+            try {
+                const data = await callApi('/api/generate-script', topic ? { topic } : {});
+                showResult(`✍️ Script: ${data.script.topic}`, data.script.script);
+            } catch (error) {
+                showResult('❌ Erreur', error.message);
+            }
+        }
+
+        async function findViral() {
+            showResult('🔥 Recherche', 'Recherche des vidéos virales...');
+            try {
+                const data = await callApi('/api/find-viral');
+                const text = data.videos.map((v, i) =>
+                    `#${i + 1} (${v.viralScore}/100) ${v.title}\n   📱 ${v.source} | 👁️ ${v.views.toLocaleString()} vues`
+                ).join('\n\n');
+                showResult('🔥 Top 5 Vidéos Virales', text);
+            } catch (error) {
+                showResult('❌ Erreur', error.message);
+            }
+        }
+
+        async function publishContent() {
+            showResult('📤 Publication', 'Publication en cours...');
+            try {
+                const data = await callApi('/api/publish');
+                const text = data.published.platforms.map(p =>
+                    `✅ ${p.platform}: ${p.url}`
+                ).join('\n');
+                showResult('📤 Contenu Publié', text);
+            } catch (error) {
+                showResult('❌ Erreur', error.message);
+            }
+        }
+
         window.onload = loadStats;
     </script>
 </body>
