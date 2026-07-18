@@ -49,9 +49,13 @@ l'erreur renvoyée par l'API.
 Le serveur écoute sur `process.env.PORT`. Définir `CLAUDE_API_KEY` dans les
 variables d'environnement de Render (jamais dans le code).
 
-Note : les routes ne sont pas protégées par mot de passe. Si le dashboard est
-public, n'importe qui peut déclencher des appels à l'API Claude avec votre clé —
-prévoir une protection (mot de passe, IP allowlist) avant une vraie mise en ligne.
+### Protection par mot de passe
+
+Définir la variable d'environnement `DASHBOARD_PASSWORD` (dans Render →
+Environment) pour protéger tout le dashboard : le navigateur demandera ce mot
+de passe avant d'afficher le site (le champ « utilisateur » peut rester vide).
+Sans cette variable, le dashboard est ouvert à tous — n'importe qui peut alors
+déclencher des appels à l'API Claude avec votre clé.
 
 ## Lancer le pipeline en console
 

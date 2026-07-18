@@ -24,6 +24,27 @@ const contentReplicator = new ContentReplicator(apiKey);
 const koreanAdapter = new KoreanContentAdapter(apiKey);
 
 app.use(express.json());
+
+// Protection par mot de passe (activée si DASHBOARD_PASSWORD est défini)
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD;
+if (DASHBOARD_PASSWORD) {
+  const crypto = require('crypto');
+  app.use((req, res, next) => {
+    const auth = req.headers.authorization || '';
+    const [scheme, encoded] = auth.split(' ');
+    if (scheme === 'Basic' && encoded) {
+      const decoded = Buffer.from(encoded, 'base64').toString();
+      const password = decoded.slice(decoded.indexOf(':') + 1);
+      const a = Buffer.from(password);
+      const b = Buffer.from(DASHBOARD_PASSWORD);
+      if (a.length === b.length && crypto.timingSafeEqual(a, b)) return next();
+    }
+    res.set('WWW-Authenticate', 'Basic realm="Video Creator AI"');
+    res.status(401).send('Mot de passe requis');
+  });
+  console.log('🔒 Dashboard protégé par mot de passe');
+}
+
 app.use(express.static('public'));
 
 // Route pour la page d'accueil
