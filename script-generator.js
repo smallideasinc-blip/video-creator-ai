@@ -6,7 +6,7 @@
 class ScriptGenerator {
   constructor(apiKey) {
     this.apiKey = apiKey;
-    this.model = 'claude-opus-4-6';
+    this.model = 'claude-opus-4-8';
     this.generatedScripts = [];
   }
 

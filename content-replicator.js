@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 class ContentReplicator {
   constructor(apiKey) {
     this.apiKey = apiKey;
-    this.model = 'claude-opus-4-6';
+    this.model = 'claude-opus-4-8';
     this.replicatedContent = [];
   }
 

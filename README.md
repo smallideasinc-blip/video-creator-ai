@@ -37,12 +37,20 @@ l'erreur renvoyée par l'API.
 
 | Route | Méthode | Description |
 |---|---|---|
-| `/api/stats` | GET | État réel des moteurs (compteurs) |
+| `/api/stats` | GET | État réel des moteurs (compteurs, connexion MongoDB) |
+| `/api/scripts` | GET | Historique des scripts générés (du plus récent au plus ancien) |
 | `/api/analyze` | POST | Analyse des tendances |
 | `/api/find-viral` | POST | Top 5 vidéos virales |
 | `/api/generate-script` | POST | Génère un script (`{topic, style, duration}` optionnels) |
-| `/api/publish` | POST | Publie le dernier script généré |
+| `/api/publish` | POST | Publie un script (`{scriptId}` optionnel, sinon le dernier généré) |
 | `/api/run-pipeline` | POST | Pipeline complet : tendances → viral → script → publication |
+
+## Persistance (v1.3)
+
+Si `MONGODB_URI` est défini, chaque script généré est sauvegardé dans MongoDB
+et l'historique est rechargé au démarrage du serveur — les scripts survivent
+donc aux redémarrages (utile sur Render, qui redémarre les services au déploiement).
+Sans MongoDB, l'historique reste en mémoire et disparaît au redémarrage.
 
 ## Déploiement (Render)
 

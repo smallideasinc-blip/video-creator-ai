@@ -78,6 +78,32 @@ button:hover {
     background: #764ba2;
 }
 
+.history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.history-actions button {
+    flex: none;
+    min-width: 0;
+    padding: 6px 12px;
+    font-size: 0.85em;
+}
+
 footer {
     background: #f8f9fa;
     padding: 20px;

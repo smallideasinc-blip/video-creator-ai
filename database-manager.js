@@ -15,6 +15,7 @@ class DatabaseManager {
   defineSchemas() {
     // Schema pour les scripts générés
     this.ScriptSchema = new mongoose.Schema({
+      id: Number,
       topic: String,
       style: String,
       duration: Number,
@@ -114,8 +115,6 @@ class DatabaseManager {
       
       // Connexion à MongoDB
       await mongoose.connect(this.dbUri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         serverSelectionTimeoutMS: 5000
       });
 
@@ -170,6 +169,20 @@ class DatabaseManager {
       this.inMemory.scripts.push(scriptData);
       console.log('💾 Script saved to memory');
     }
+  }
+
+  async getScripts() {
+    if (this.connected) {
+      try {
+        return await this.Script.find().sort({ createdAt: 1 }).lean();
+      } catch (error) {
+        console.error('❌ Error loading scripts:', error.message);
+        return [];
+      }
+    } else if (this.inMemory) {
+      return this.inMemory.scripts;
+    }
+    return [];
   }
 
   async saveViralVideo(videoData) {

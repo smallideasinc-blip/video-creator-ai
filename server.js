@@ -1,5 +1,6 @@
-// DASHBOARD SERVER v1.2
+// DASHBOARD SERVER v1.3
 // Serveur web pour gérer Video Creator AI — branché sur les vrais moteurs
+// v1.3 : historique des scripts + persistance MongoDB (fallback mémoire)
 
 require('dotenv').config();
 
@@ -10,6 +11,7 @@ const MultiplatformPublisher = require('./multiplatform-publisher.js');
 const ViralVideoScraper = require('./viral-video-scraper.js');
 const ContentReplicator = require('./content-replicator.js');
 const KoreanContentAdapter = require('./korean-content-adapter.js');
+const DatabaseManager = require('./database-manager.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +24,35 @@ const publisher = new MultiplatformPublisher();
 const viralScraper = new ViralVideoScraper();
 const contentReplicator = new ContentReplicator(apiKey);
 const koreanAdapter = new KoreanContentAdapter(apiKey);
+const db = new DatabaseManager();
+
+// Connexion base de données : si MongoDB est configuré, recharger l'historique
+// des scripts pour qu'il survive aux redémarrages du serveur
+db.connect().then(async (connected) => {
+  if (!connected) return;
+  const saved = await db.getScripts();
+  for (const doc of saved) {
+    scriptGenerator.generatedScripts.push({
+      id: doc.id || new Date(doc.createdAt).getTime(),
+      topic: doc.topic,
+      style: doc.style,
+      duration: doc.duration,
+      script: doc.script,
+      createdAt: doc.createdAt,
+      status: doc.status
+    });
+  }
+  if (saved.length > 0) {
+    console.log(`💾 ${saved.length} script(s) rechargé(s) depuis MongoDB`);
+  }
+});
+
+// Sauvegarde d'un script sans bloquer la réponse HTTP
+function persistScript(script) {
+  db.saveScript(script).catch((err) => {
+    console.error('❌ Persistance du script échouée:', err.message);
+  });
+}
 
 app.use(express.json());
 
@@ -62,8 +93,26 @@ app.get('/api/stats', (req, res) => {
     videosFound: viralScraper.viralVideos.length,
     trendsAnalyzed: trendsAnalyzer.trends.length,
     contentPublished: publisher.getPublishHistory().length,
+    dbConnected: db.connected,
     uptime: new Date().toLocaleTimeString()
   });
+});
+
+// Historique des scripts générés (du plus récent au plus ancien)
+app.get('/api/scripts', (req, res) => {
+  const scripts = scriptGenerator.getAllScripts()
+    .slice()
+    .reverse()
+    .map(s => ({
+      id: s.id,
+      topic: s.topic,
+      style: s.style,
+      duration: s.duration,
+      script: s.script,
+      createdAt: s.createdAt,
+      status: s.status
+    }));
+  res.json({ scripts });
 });
 
 // Analyser les tendances
@@ -108,24 +157,43 @@ app.post('/api/generate-script', async (req, res) => {
     if (!script) {
       return res.status(502).json({ error: scriptGenerator.lastError || 'La génération du script a échoué' });
     }
+    persistScript(script);
     res.json({ script });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Publier le dernier script généré
+// Publier un script : { scriptId } optionnel, sinon le dernier généré
 app.post('/api/publish', async (req, res) => {
   try {
     const scripts = scriptGenerator.getAllScripts();
     if (scripts.length === 0) {
       return res.status(400).json({ error: 'Aucun script à publier — générez un script d\'abord' });
     }
-    const latest = scripts[scripts.length - 1];
+
+    const { scriptId } = req.body || {};
+    let script;
+    if (scriptId !== undefined) {
+      script = scripts.find(s => String(s.id) === String(scriptId));
+      if (!script) {
+        return res.status(404).json({ error: `Script ${scriptId} introuvable` });
+      }
+    } else {
+      script = scripts[scripts.length - 1];
+    }
+
     const record = await publisher.publishContent(
-      latest.script,
+      script.script,
       ['TikTok', 'Instagram Reels', 'YouTube Shorts']
     );
+    script.status = 'published';
+    db.savePublication({
+      content: script.script,
+      platforms: record.platforms.map(p => p.platform),
+      status: 'published',
+      publishedAt: new Date()
+    }).catch(() => {});
     res.json({ published: record });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -151,6 +219,7 @@ app.post('/api/run-pipeline', async (req, res) => {
 
     let published = null;
     if (script) {
+      persistScript(script);
       published = await publisher.publishContent(
         script.script,
         ['TikTok', 'Instagram Reels', 'YouTube Shorts']

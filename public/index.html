@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎬 Video Creator AI v1.2</h1>
+            <h1>🎬 Video Creator AI v1.3</h1>
             <p>AI-Powered Viral Video Creation System</p>
         </header>
         <main>
@@ -38,6 +38,10 @@
             <div class="status-box" id="result-box" style="display:none; margin-top: 30px;">
                 <h2 id="result-title">Résultat</h2>
                 <pre id="result" style="white-space: pre-wrap; font-family: inherit;"></pre>
+            </div>
+            <div class="status-box" id="history-box" style="margin-top: 30px;">
+                <h2>📚 Historique des scripts</h2>
+                <div id="history">Aucun script généré pour l'instant.</div>
             </div>
         </main>
         <footer>
@@ -68,6 +72,48 @@
             document.getElementById('result-title').textContent = title;
             document.getElementById('result').textContent = text;
             loadStats();
+            loadScripts();
+        }
+
+        let scriptCache = [];
+
+        async function loadScripts() {
+            try {
+                const response = await fetch('/api/scripts');
+                const data = await response.json();
+                scriptCache = data.scripts;
+                const container = document.getElementById('history');
+                if (scriptCache.length === 0) {
+                    container.textContent = "Aucun script généré pour l'instant.";
+                    return;
+                }
+                container.innerHTML = scriptCache.map(s => {
+                    const date = new Date(s.createdAt).toLocaleString('fr-FR');
+                    const badge = s.status === 'published' ? '📤 publié' : '📝 ' + s.status;
+                    return `<div class="history-item">
+                        <span class="history-info"><strong>${escapeHtml(s.topic)}</strong> — ${date} (${badge})</span>
+                        <span class="history-actions">
+                            <button onclick="viewScript('${s.id}')">👁️ Voir</button>
+                            <button onclick="publishContent('${s.id}')">📤 Publier</button>
+                        </span>
+                    </div>`;
+                }).join('');
+            } catch (error) {
+                document.getElementById('history').textContent = 'Erreur de chargement de l\'historique.';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function viewScript(id) {
+            const s = scriptCache.find(x => String(x.id) === String(id));
+            if (!s) return;
+            showResult(`✍️ Script: ${s.topic}`, s.script);
+            document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
         }
 
         function setBusy(busy) {
@@ -142,10 +188,10 @@
             }
         }
 
-        async function publishContent() {
+        async function publishContent(scriptId) {
             showResult('📤 Publication', 'Publication en cours...');
             try {
-                const data = await callApi('/api/publish');
+                const data = await callApi('/api/publish', scriptId ? { scriptId } : {});
                 const text = data.published.platforms.map(p =>
                     `✅ ${p.platform}: ${p.url}`
                 ).join('\n');
@@ -155,7 +201,7 @@
             }
         }
 
-        window.onload = loadStats;
+        window.onload = () => { loadStats(); loadScripts(); };
     </script>
 </body>
 </html>
