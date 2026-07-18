@@ -73,7 +73,8 @@ Format:
 
         return scriptObj;
       } else {
-        console.error('❌ No content in API response');
+        this.lastError = data.error?.message || 'No content in API response';
+        console.error('❌ API error:', this.lastError);
         return null;
       }
     } catch (error) {
