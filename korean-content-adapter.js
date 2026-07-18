@@ -5,7 +5,8 @@
 class KoreanContentAdapter {
   constructor(apiKey) {
     this.apiKey = apiKey;
-    this.model = 'claude-opus-4-6';
+    // Sonnet : bon rapport qualité/prix pour l'adaptation culturelle (~40% moins cher qu'Opus)
+    this.model = 'claude-sonnet-4-6';
     this.koreanCategories = [
       'K-dramas',
       'K-beauty',

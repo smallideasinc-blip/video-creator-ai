@@ -6,11 +6,46 @@
 class ScriptGenerator {
   constructor(apiKey) {
     this.apiKey = apiKey;
-    this.model = 'claude-opus-4-6';
+    // Haiku suffit pour des scripts courts formatés (~5x moins cher qu'Opus)
+    this.model = 'claude-haiku-4-5';
+    // Sonnet pour l'amélioration finale, où la nuance compte davantage
+    this.improveModel = 'claude-sonnet-4-6';
     this.generatedScripts = [];
   }
 
+  // Réhydrate les scripts persistés (évite de régénérer après un redémarrage)
+  loadScripts(scripts) {
+    for (const s of scripts) {
+      this.generatedScripts.push({
+        id: s.id || Date.now() + Math.random(),
+        topic: s.topic,
+        style: s.style,
+        duration: s.duration,
+        script: s.script,
+        createdAt: s.createdAt,
+        status: s.status || 'generated'
+      });
+    }
+    console.log(`💾 [SCRIPT GENERATOR] ${scripts.length} scripts rechargés depuis la base`);
+  }
+
+  findExistingScript(topic, style, duration) {
+    const norm = v => String(v).trim().toLowerCase();
+    return this.generatedScripts.find(s =>
+      norm(s.topic) === norm(topic) &&
+      norm(s.style) === norm(style) &&
+      Number(s.duration) === Number(duration)
+    );
+  }
+
   async generateScript(topic, style = 'engaging', duration = 60) {
+    // Déduplication : même sujet/style/durée → réutiliser sans appel API
+    const existing = this.findExistingScript(topic, style, duration);
+    if (existing) {
+      console.log(`\n♻️  [SCRIPT GENERATOR] Script déjà généré pour "${topic}" — réutilisation (0 crédit)`);
+      return { ...existing, fromCache: true };
+    }
+
     console.log(`\n✍️  [SCRIPT GENERATOR] Generating script for: "${topic}"`);
 
     const prompt = `Generate a viral short-form video script (${duration} seconds) about "${topic}".
@@ -53,9 +88,17 @@ Format:
 
       const data = await response.json();
 
+      if (!response.ok) {
+        this.lastError = response.status === 429
+          ? 'Limite de débit API atteinte — réessayez dans quelques instants (ne relancez pas en boucle)'
+          : `API ${response.status}: ${data.error?.message || 'erreur inconnue'}`;
+        console.error('❌ API error:', this.lastError);
+        return null;
+      }
+
       if (data.content && data.content[0]) {
         const script = data.content[0].text;
-        
+
         const scriptObj = {
           id: Date.now(),
           topic,
@@ -132,7 +175,7 @@ Please improve the script based on this feedback. Keep the same format and durat
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: this.model,
+          model: this.improveModel,
           max_tokens: 1000,
           messages: [{
             role: 'user',
@@ -142,7 +185,16 @@ Please improve the script based on this feedback. Keep the same format and durat
       });
 
       const data = await response.json();
+      if (!response.ok) {
+        this.lastError = `API ${response.status}: ${data.error?.message || 'erreur inconnue'}`;
+        console.error('❌ API error:', this.lastError);
+        return null;
+      }
       if (data.content && data.content[0]) {
+        // Conserver la version précédente : si l'amélioration déçoit,
+        // pas besoin de regénérer (et donc de re-payer)
+        script.previousVersions = script.previousVersions || [];
+        script.previousVersions.push(script.script);
         script.script = data.content[0].text;
         script.status = 'improved';
         console.log('✅ Script improved!');
