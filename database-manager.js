@@ -171,6 +171,22 @@ class DatabaseManager {
     }
   }
 
+  async updateScript(script) {
+    if (this.connected) {
+      try {
+        await this.Script.updateOne(
+          { id: script.id },
+          { $set: { script: script.script, status: script.status } }
+        );
+        console.log('✅ Script updated in database');
+      } catch (error) {
+        console.error('❌ Error updating script:', error.message);
+      }
+    }
+    // Fallback mémoire : saveScript stocke la même référence d'objet,
+    // les modifications en place sont donc déjà visibles
+  }
+
   async getScripts() {
     if (this.connected) {
       try {

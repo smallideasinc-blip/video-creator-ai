@@ -78,6 +78,20 @@ button:hover {
     background: #764ba2;
 }
 
+#platform-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+}
+
+.platform-choice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
 .history-item {
     display: flex;
     align-items: center;

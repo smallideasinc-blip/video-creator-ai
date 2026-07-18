@@ -1,6 +1,7 @@
-// DASHBOARD SERVER v1.3
+// DASHBOARD SERVER v1.4
 // Serveur web pour gérer Video Creator AI — branché sur les vrais moteurs
 // v1.3 : historique des scripts + persistance MongoDB (fallback mémoire)
+// v1.4 : amélioration de script via feedback + choix des plateformes
 
 require('dotenv').config();
 
@@ -93,6 +94,7 @@ app.get('/api/stats', (req, res) => {
     videosFound: viralScraper.viralVideos.length,
     trendsAnalyzed: trendsAnalyzer.trends.length,
     contentPublished: publisher.getPublishHistory().length,
+    platforms: publisher.platforms,
     dbConnected: db.connected,
     uptime: new Date().toLocaleTimeString()
   });
@@ -164,7 +166,37 @@ app.post('/api/generate-script', async (req, res) => {
   }
 });
 
-// Publier un script : { scriptId } optionnel, sinon le dernier généré
+// Améliorer un script existant à partir d'un feedback (via Claude)
+app.post('/api/improve-script', async (req, res) => {
+  if (!apiKey) {
+    return res.status(503).json({ error: 'CLAUDE_API_KEY non configurée sur le serveur' });
+  }
+
+  try {
+    const { scriptId, feedback } = req.body || {};
+    if (scriptId === undefined || !feedback) {
+      return res.status(400).json({ error: 'scriptId et feedback sont requis' });
+    }
+
+    const script = scriptGenerator.getAllScripts().find(s => String(s.id) === String(scriptId));
+    if (!script) {
+      return res.status(404).json({ error: `Script ${scriptId} introuvable` });
+    }
+
+    const improved = await scriptGenerator.improveScript(script.id, feedback);
+    if (!improved) {
+      return res.status(502).json({ error: 'L\'amélioration du script a échoué' });
+    }
+
+    db.updateScript(improved).catch(() => {});
+    res.json({ script: improved });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Publier un script : { scriptId, platforms } optionnels
+// (sinon : dernier script généré, sur TikTok / Instagram Reels / YouTube Shorts)
 app.post('/api/publish', async (req, res) => {
   try {
     const scripts = scriptGenerator.getAllScripts();
@@ -172,7 +204,7 @@ app.post('/api/publish', async (req, res) => {
       return res.status(400).json({ error: 'Aucun script à publier — générez un script d\'abord' });
     }
 
-    const { scriptId } = req.body || {};
+    const { scriptId, platforms } = req.body || {};
     let script;
     if (scriptId !== undefined) {
       script = scripts.find(s => String(s.id) === String(scriptId));
@@ -183,10 +215,18 @@ app.post('/api/publish', async (req, res) => {
       script = scripts[scripts.length - 1];
     }
 
-    const record = await publisher.publishContent(
-      script.script,
-      ['TikTok', 'Instagram Reels', 'YouTube Shorts']
-    );
+    let targetPlatforms = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
+    if (Array.isArray(platforms) && platforms.length > 0) {
+      const invalid = platforms.filter(p => !publisher.platforms.includes(p));
+      if (invalid.length > 0) {
+        return res.status(400).json({
+          error: `Plateforme(s) inconnue(s) : ${invalid.join(', ')}. Disponibles : ${publisher.platforms.join(', ')}`
+        });
+      }
+      targetPlatforms = platforms;
+    }
+
+    const record = await publisher.publishContent(script.script, targetPlatforms);
     script.status = 'published';
     db.savePublication({
       content: script.script,

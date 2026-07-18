@@ -42,7 +42,8 @@ l'erreur renvoyée par l'API.
 | `/api/analyze` | POST | Analyse des tendances |
 | `/api/find-viral` | POST | Top 5 vidéos virales |
 | `/api/generate-script` | POST | Génère un script (`{topic, style, duration}` optionnels) |
-| `/api/publish` | POST | Publie un script (`{scriptId}` optionnel, sinon le dernier généré) |
+| `/api/improve-script` | POST | Améliore un script existant via Claude (`{scriptId, feedback}` requis) |
+| `/api/publish` | POST | Publie un script (`{scriptId, platforms}` optionnels, sinon le dernier généré sur TikTok / Instagram Reels / YouTube Shorts) |
 | `/api/run-pipeline` | POST | Pipeline complet : tendances → viral → script → publication |
 
 ## Persistance (v1.3)

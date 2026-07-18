@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎬 Video Creator AI v1.3</h1>
+            <h1>🎬 Video Creator AI v1.4</h1>
             <p>AI-Powered Viral Video Creation System</p>
         </header>
         <main>
@@ -35,6 +35,10 @@
                 <button id="btn-viral" onclick="findViral()">🔥 Vidéos Virales</button>
                 <button id="btn-publish" onclick="publishContent()">📤 Publier</button>
             </div>
+            <div class="status-box" id="platforms-box" style="margin-top: 30px;">
+                <h2>📱 Plateformes de publication</h2>
+                <div id="platform-choices">Chargement...</div>
+            </div>
             <div class="status-box" id="result-box" style="display:none; margin-top: 30px;">
                 <h2 id="result-title">Résultat</h2>
                 <pre id="result" style="white-space: pre-wrap; font-family: inherit;"></pre>
@@ -49,10 +53,29 @@
         </footer>
     </div>
     <script>
+        const DEFAULT_PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
+
+        function renderPlatformChoices(platforms) {
+            const container = document.getElementById('platform-choices');
+            if (container.querySelector('input')) return; // déjà rendu
+            container.innerHTML = platforms.map(p => `
+                <label class="platform-choice">
+                    <input type="checkbox" value="${escapeHtml(p)}"
+                        ${DEFAULT_PLATFORMS.includes(p) ? 'checked' : ''}>
+                    ${escapeHtml(p)}
+                </label>`).join('');
+        }
+
+        function selectedPlatforms() {
+            return Array.from(document.querySelectorAll('#platform-choices input:checked'))
+                .map(input => input.value);
+        }
+
         async function loadStats() {
             try {
                 const response = await fetch('/api/stats');
                 const data = await response.json();
+                if (data.platforms) renderPlatformChoices(data.platforms);
                 document.getElementById('status').innerHTML = `
                     <p><strong>Status:</strong> ${data.status}</p>
                     <p><strong>Clé API Claude:</strong> ${data.apiKeyConfigured ? '✅ configurée' : '❌ manquante'}</p>
@@ -94,6 +117,7 @@
                         <span class="history-info"><strong>${escapeHtml(s.topic)}</strong> — ${date} (${badge})</span>
                         <span class="history-actions">
                             <button onclick="viewScript('${s.id}')">👁️ Voir</button>
+                            <button onclick="improveScript('${s.id}')">🔧 Améliorer</button>
                             <button onclick="publishContent('${s.id}')">📤 Publier</button>
                         </span>
                     </div>`;
@@ -188,10 +212,29 @@
             }
         }
 
+        async function improveScript(scriptId) {
+            const feedback = prompt('Quel feedback pour améliorer ce script ?\n(ex : "plus court et plus percutant", "ajoute une statistique choc")');
+            if (!feedback) return;
+            showResult('🔧 Amélioration', 'Claude retravaille le script... (~15 secondes)');
+            try {
+                const data = await callApi('/api/improve-script', { scriptId, feedback });
+                showResult(`🔧 Script amélioré: ${data.script.topic}`, data.script.script);
+            } catch (error) {
+                showResult('❌ Erreur', error.message);
+            }
+        }
+
         async function publishContent(scriptId) {
+            const platforms = selectedPlatforms();
+            if (platforms.length === 0) {
+                showResult('❌ Erreur', 'Sélectionnez au moins une plateforme de publication.');
+                return;
+            }
             showResult('📤 Publication', 'Publication en cours...');
             try {
-                const data = await callApi('/api/publish', scriptId ? { scriptId } : {});
+                const body = { platforms };
+                if (scriptId) body.scriptId = scriptId;
+                const data = await callApi('/api/publish', body);
                 const text = data.published.platforms.map(p =>
                     `✅ ${p.platform}: ${p.url}`
                 ).join('\n');
