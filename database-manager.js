@@ -172,6 +172,18 @@ class DatabaseManager {
     }
   }
 
+  async getScripts() {
+    if (this.connected) {
+      try {
+        return await this.Script.find().sort({ createdAt: 1 }).lean();
+      } catch (error) {
+        console.error('❌ Error loading scripts:', error.message);
+        return [];
+      }
+    }
+    return this.inMemory ? this.inMemory.scripts : [];
+  }
+
   async saveViralVideo(videoData) {
     if (this.connected) {
       try {

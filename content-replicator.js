@@ -7,7 +7,8 @@ const mongoose = require('mongoose');
 class ContentReplicator {
   constructor(apiKey) {
     this.apiKey = apiKey;
-    this.model = 'claude-opus-4-6';
+    // Haiku suffit pour des concepts courts formatés (~5x moins cher qu'Opus)
+    this.model = 'claude-haiku-4-5';
     this.replicatedContent = [];
   }
 

@@ -10,6 +10,7 @@ const MultiplatformPublisher = require('./multiplatform-publisher.js');
 const ViralVideoScraper = require('./viral-video-scraper.js');
 const ContentReplicator = require('./content-replicator.js');
 const KoreanContentAdapter = require('./korean-content-adapter.js');
+const DatabaseManager = require('./database-manager.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,27 @@ const publisher = new MultiplatformPublisher();
 const viralScraper = new ViralVideoScraper();
 const contentReplicator = new ContentReplicator(apiKey);
 const koreanAdapter = new KoreanContentAdapter(apiKey);
+const db = new DatabaseManager();
+
+// Persistance : recharger les scripts existants pour ne jamais régénérer
+// (et donc re-payer) un script déjà produit avant un redémarrage
+db.connect().then(async () => {
+  const saved = await db.getScripts();
+  if (saved && saved.length > 0) scriptGenerator.loadScripts(saved);
+});
+
+// Sauvegarde un script fraîchement généré (les réutilisations du cache ne sont pas re-sauvées)
+async function persistScript(script) {
+  if (!script || script.fromCache) return;
+  await db.saveScript({
+    topic: script.topic,
+    style: script.style,
+    duration: script.duration,
+    script: script.script,
+    generatedBy: scriptGenerator.model,
+    status: script.status
+  });
+}
 
 app.use(express.json());
 
@@ -108,6 +130,7 @@ app.post('/api/generate-script', async (req, res) => {
     if (!script) {
       return res.status(502).json({ error: scriptGenerator.lastError || 'La génération du script a échoué' });
     }
+    await persistScript(script);
     res.json({ script });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -151,6 +174,7 @@ app.post('/api/run-pipeline', async (req, res) => {
 
     let published = null;
     if (script) {
+      await persistScript(script);
       published = await publisher.publishContent(
         script.script,
         ['TikTok', 'Instagram Reels', 'YouTube Shorts']
