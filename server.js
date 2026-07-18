@@ -1,7 +1,8 @@
-// DASHBOARD SERVER v1.4
+// DASHBOARD SERVER v1.5
 // Serveur web pour gérer Video Creator AI — branché sur les vrais moteurs
 // v1.3 : historique des scripts + persistance MongoDB (fallback mémoire)
 // v1.4 : amélioration de script via feedback + choix des plateformes
+// v1.5 : état de connexion des plateformes + statistiques de publication
 
 require('dotenv').config();
 
@@ -98,6 +99,32 @@ app.get('/api/stats', (req, res) => {
     dbConnected: db.connected,
     uptime: new Date().toLocaleTimeString()
   });
+});
+
+// État de connexion des plateformes (identifiants API configurés ou non)
+app.get('/api/platforms', (req, res) => {
+  res.json({ platforms: publisher.getConnectionStatus() });
+});
+
+// Historique et statistiques des publications
+app.get('/api/publications', (req, res) => {
+  const history = publisher.getPublishHistory()
+    .slice()
+    .reverse()
+    .map(record => ({
+      id: record.id,
+      content: record.content,
+      timestamp: record.timestamp,
+      platforms: record.platforms.map(p => ({
+        platform: p.platform,
+        url: p.url,
+        engagement: p.engagement
+      }))
+    }));
+  const analytics = publisher.platforms
+    .map(name => publisher.getAnalytics(name))
+    .filter(Boolean);
+  res.json({ history, analytics });
 });
 
 // Historique des scripts générés (du plus récent au plus ancien)

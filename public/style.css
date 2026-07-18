@@ -92,6 +92,27 @@ button:hover {
     user-select: none;
 }
 
+.platform-note {
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.analytics-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.analytics-chip {
+    background: #667eea;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.85em;
+}
+
 .history-item {
     display: flex;
     align-items: center;

@@ -38,6 +38,8 @@ l'erreur renvoyée par l'API.
 | Route | Méthode | Description |
 |---|---|---|
 | `/api/stats` | GET | État réel des moteurs (compteurs, connexion MongoDB) |
+| `/api/platforms` | GET | État de connexion des plateformes (identifiants API configurés ou non) |
+| `/api/publications` | GET | Historique et statistiques des publications |
 | `/api/scripts` | GET | Historique des scripts générés (du plus récent au plus ancien) |
 | `/api/analyze` | POST | Analyse des tendances |
 | `/api/find-viral` | POST | Top 5 vidéos virales |
@@ -52,6 +54,14 @@ Si `MONGODB_URI` est défini, chaque script généré est sauvegardé dans Mongo
 et l'historique est rechargé au démarrage du serveur — les scripts survivent
 donc aux redémarrages (utile sur Render, qui redémarre les services au déploiement).
 Sans MongoDB, l'historique reste en mémoire et disparaît au redémarrage.
+
+## Connexion des plateformes (v1.5)
+
+Le dashboard indique pour chaque plateforme si son identifiant API est
+configuré (✅) ou non (⚠️ → publication simulée). Le guide pas à pas pour
+créer chaque compte (TikTok, Instagram, YouTube, X, LinkedIn, Facebook) et
+obtenir chaque clé se trouve dans **[GUIDE-PLATEFORMES.md](GUIDE-PLATEFORMES.md)**.
+Les variables attendues sont listées dans `.env.example`.
 
 ## Déploiement (Render)
 

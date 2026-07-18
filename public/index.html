@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎬 Video Creator AI v1.4</h1>
+            <h1>🎬 Video Creator AI v1.5</h1>
             <p>AI-Powered Viral Video Creation System</p>
         </header>
         <main>
@@ -38,6 +38,13 @@
             <div class="status-box" id="platforms-box" style="margin-top: 30px;">
                 <h2>📱 Plateformes de publication</h2>
                 <div id="platform-choices">Chargement...</div>
+                <p class="platform-note">⚠️ = compte API non connecté : la publication est <strong>simulée</strong>.
+                   Consultez <a href="https://github.com/smallideasinc-blip/video-creator-ai/blob/main/GUIDE-PLATEFORMES.md" target="_blank">GUIDE-PLATEFORMES.md</a>
+                   pour créer chaque compte et connecter la plateforme.</p>
+            </div>
+            <div class="status-box" id="publications-box" style="margin-top: 30px;">
+                <h2>📈 Publications</h2>
+                <div id="publications">Aucune publication pour l'instant.</div>
             </div>
             <div class="status-box" id="result-box" style="display:none; margin-top: 30px;">
                 <h2 id="result-title">Résultat</h2>
@@ -55,15 +62,50 @@
     <script>
         const DEFAULT_PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
 
-        function renderPlatformChoices(platforms) {
+        async function loadPlatforms() {
             const container = document.getElementById('platform-choices');
             if (container.querySelector('input')) return; // déjà rendu
-            container.innerHTML = platforms.map(p => `
-                <label class="platform-choice">
-                    <input type="checkbox" value="${escapeHtml(p)}"
-                        ${DEFAULT_PLATFORMS.includes(p) ? 'checked' : ''}>
-                    ${escapeHtml(p)}
-                </label>`).join('');
+            try {
+                const response = await fetch('/api/platforms');
+                const data = await response.json();
+                container.innerHTML = data.platforms.map(p => `
+                    <label class="platform-choice" title="${p.connected
+                        ? 'Compte API connecté'
+                        : 'Non connecté (' + escapeHtml(p.envVar) + ' manquant) — publication simulée'}">
+                        <input type="checkbox" value="${escapeHtml(p.platform)}"
+                            ${DEFAULT_PLATFORMS.includes(p.platform) ? 'checked' : ''}>
+                        ${escapeHtml(p.platform)} ${p.connected ? '✅' : '⚠️'}
+                    </label>`).join('');
+            } catch (error) {
+                container.textContent = 'Erreur de chargement des plateformes.';
+            }
+        }
+
+        async function loadPublications() {
+            try {
+                const response = await fetch('/api/publications');
+                const data = await response.json();
+                const container = document.getElementById('publications');
+                if (data.history.length === 0) {
+                    container.textContent = 'Aucune publication pour l\'instant.';
+                    return;
+                }
+                const analyticsText = data.analytics.map(a =>
+                    `<span class="analytics-chip">${escapeHtml(a.platform)} :
+                        ${a.totalPosts} post(s), ${a.totalEngagement.toLocaleString('fr-FR')} interactions</span>`
+                ).join(' ');
+                const historyText = data.history.slice(0, 10).map(rec => {
+                    const date = new Date(rec.timestamp).toLocaleString('fr-FR');
+                    const platforms = rec.platforms.map(p => escapeHtml(p.platform)).join(', ');
+                    return `<div class="history-item">
+                        <span class="history-info">${date} — 📱 ${platforms}<br>
+                        <em>${escapeHtml(rec.content)}</em></span>
+                    </div>`;
+                }).join('');
+                container.innerHTML = `<div class="analytics-row">${analyticsText}</div>${historyText}`;
+            } catch (error) {
+                document.getElementById('publications').textContent = 'Erreur de chargement des publications.';
+            }
         }
 
         function selectedPlatforms() {
@@ -75,7 +117,6 @@
             try {
                 const response = await fetch('/api/stats');
                 const data = await response.json();
-                if (data.platforms) renderPlatformChoices(data.platforms);
                 document.getElementById('status').innerHTML = `
                     <p><strong>Status:</strong> ${data.status}</p>
                     <p><strong>Clé API Claude:</strong> ${data.apiKeyConfigured ? '✅ configurée' : '❌ manquante'}</p>
@@ -96,6 +137,7 @@
             document.getElementById('result').textContent = text;
             loadStats();
             loadScripts();
+            loadPublications();
         }
 
         let scriptCache = [];
@@ -244,7 +286,7 @@
             }
         }
 
-        window.onload = () => { loadStats(); loadScripts(); };
+        window.onload = () => { loadStats(); loadPlatforms(); loadScripts(); loadPublications(); };
     </script>
 </body>
 </html>
