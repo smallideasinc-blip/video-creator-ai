@@ -8,7 +8,7 @@ class ScriptGenerator {
     console.log(`[SCRIPT-GEN] Constructor called with apiKey: ${apiKey ? 'EXISTS' : 'MISSING'}`);
     this.apiKey = apiKey;
     this.client = new Anthropic({ apiKey });
-    this.model = 'claude-opus-4-8';
+    this.model = 'claude-haiku-4-5-20251001';
     this.generatedScripts = [];
     console.log(`[SCRIPT-GEN] Anthropic client initialized with model: ${this.model}`);
   }

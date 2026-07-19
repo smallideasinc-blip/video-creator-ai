@@ -6,7 +6,7 @@ const Anthropic = require("@anthropic-ai/sdk");
 class AIDetectionAgent {
   constructor(apiKey) {
     this.client = new Anthropic({ apiKey });
-    this.model = "claude-opus-4-8";
+    this.model = "claude-haiku-4-5-20251001";
   }
 
   /**

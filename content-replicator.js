@@ -7,7 +7,7 @@ class ContentReplicator {
   constructor(apiKey) {
     this.apiKey = apiKey;
     this.client = new Anthropic({ apiKey });
-    this.model = 'claude-opus-4-8';
+    this.model = 'claude-haiku-4-5-20251001';
     this.replicatedContent = [];
   }
 
