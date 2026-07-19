@@ -1,10 +1,12 @@
 // KOREAN CONTENT ADAPTER ENGINE v1.1
 // Détecte et adapte le contenu coréen en FR + EN
 
+const Anthropic = require("@anthropic-ai/sdk");
 
 class KoreanContentAdapter {
   constructor(apiKey) {
     this.apiKey = apiKey;
+    this.client = new Anthropic({ apiKey });
     this.model = 'claude-opus-4-8';
     this.koreanCategories = [
       'K-dramas',
@@ -63,27 +65,18 @@ CULTURAL BRIDGE: [How Korean/French cultures connect]
 HASHTAGS: #Korean #France #Culturel`;
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: 600,
-          messages: [{
-            role: 'user',
-            content: prompt
-          }]
-        })
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 600,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
       });
 
-      const data = await response.json();
-      if (data.content && data.content[0]) {
+      if (response.content && response.content[0]) {
         console.log('✅ Adapted to French');
-        return data.content[0].text;
+        return response.content[0].text;
       }
     } catch (error) {
       console.error('❌ Error adapting to French:', error.message);
@@ -113,27 +106,18 @@ EXPLANATION: [Why this matters globally]
 HASHTAGS: #Korean #Global #Culture`;
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: 600,
-          messages: [{
-            role: 'user',
-            content: prompt
-          }]
-        })
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 600,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
       });
 
-      const data = await response.json();
-      if (data.content && data.content[0]) {
+      if (response.content && response.content[0]) {
         console.log('✅ Adapted to English');
-        return data.content[0].text;
+        return response.content[0].text;
       }
     } catch (error) {
       console.error('❌ Error adapting to English:', error.message);
