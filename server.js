@@ -14,6 +14,7 @@ const ViralVideoScraper = require('./viral-video-scraper.js');
 const ContentReplicator = require('./content-replicator.js');
 const KoreanContentAdapter = require('./korean-content-adapter.js');
 const DatabaseManager = require('./database-manager.js');
+const AIDetectionAgent = require('./ai-detection-agent.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +28,7 @@ const viralScraper = new ViralVideoScraper();
 const contentReplicator = new ContentReplicator(apiKey);
 const koreanAdapter = new KoreanContentAdapter(apiKey);
 const db = new DatabaseManager();
+const aiDetectionAgent = new AIDetectionAgent(apiKey);
 
 // Connexion base de données : si MongoDB est configuré, recharger l'historique
 // des scripts pour qu'il survive aux redémarrages du serveur
@@ -217,6 +219,39 @@ app.post('/api/improve-script', async (req, res) => {
 
     db.updateScript(improved).catch(() => {});
     res.json({ script: improved });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Vérifier si un script semble généré par IA avant publication
+// Endpoint de sécurité : { scriptId, platform }
+app.post('/api/check-ai-detection', async (req, res) => {
+  try {
+    const { scriptId, platform } = req.body || {};
+
+    const scripts = scriptGenerator.getAllScripts();
+    let script;
+
+    if (scriptId !== undefined) {
+      script = scripts.find(s => String(s.id) === String(scriptId));
+      if (!script) {
+        return res.status(404).json({ error: `Script ${scriptId} introuvable` });
+      }
+    } else {
+      script = scripts[scripts.length - 1];
+      if (!script) {
+        return res.status(400).json({ error: 'Aucun script à vérifier — générez un script d\'abord' });
+      }
+    }
+
+    const analysis = await aiDetectionAgent.verifyBeforePublication(script, platform || 'general');
+
+    res.json({
+      scriptId: script.id,
+      platform: platform || 'general',
+      aiDetectionResult: analysis
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
