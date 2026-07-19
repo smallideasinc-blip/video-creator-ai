@@ -187,16 +187,33 @@
         }
 
         async function callApi(path, body) {
+            console.log(`[FRONTEND-API] callApi('${path}') called`);
+            console.log(`[FRONTEND-API] Body:`, body);
             setBusy(true);
             try {
+                console.log(`[FRONTEND-API] Sending fetch request...`);
+                const startTime = Date.now();
                 const response = await fetch(path, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body || {})
                 });
+                const elapsed = Date.now() - startTime;
+                console.log(`[FRONTEND-API] ✅ Fetch completed in ${elapsed}ms`);
+                console.log(`[FRONTEND-API] Response status: ${response.status} ${response.statusText}`);
+
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Erreur serveur');
+                console.log(`[FRONTEND-API] Response data:`, data);
+
+                if (!response.ok) {
+                    console.error(`[FRONTEND-API] ❌ Response not ok: ${response.status}`);
+                    throw new Error(data.error || 'Erreur serveur');
+                }
+                console.log(`[FRONTEND-API] ✅ Success`);
                 return data;
+            } catch (error) {
+                console.error(`[FRONTEND-API] ❌ Error:`, error.message);
+                throw error;
             } finally {
                 setBusy(false);
             }
@@ -230,13 +247,23 @@
         }
 
         async function generateScript() {
+            console.log('[FRONTEND] generateScript() called');
             const topic = prompt('Sujet du script (laisser vide = tendance du moment):') ;
-            if (topic === null) return;
+            console.log(`[FRONTEND] Topic input: "${topic}"`);
+            if (topic === null) {
+                console.log('[FRONTEND] User cancelled prompt');
+                return;
+            }
+            console.log('[FRONTEND] Calling callApi(/api/generate-script)...');
             showResult('✍️ Génération', 'Claude rédige le script... (~15 secondes)');
             try {
                 const data = await callApi('/api/generate-script', topic ? { topic } : {});
+                console.log('[FRONTEND] ✅ API Response received');
+                console.log('[FRONTEND] Script data:', data.script);
                 showResult(`✍️ Script: ${data.script.topic}`, data.script.script);
             } catch (error) {
+                console.error('[FRONTEND] ❌ Error in generateScript:', error);
+                console.error('[FRONTEND] Error message:', error.message);
                 showResult('❌ Erreur', error.message);
             }
         }
