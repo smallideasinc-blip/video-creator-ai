@@ -1,11 +1,12 @@
 // SCRIPT GENERATOR ENGINE v1.1
 // Génère des scripts vidéo via Claude API
 
-
+const Anthropic = require("@anthropic-ai/sdk");
 
 class ScriptGenerator {
   constructor(apiKey) {
     this.apiKey = apiKey;
+    this.client = new Anthropic({ apiKey });
     this.model = 'claude-opus-4-8';
     this.generatedScripts = [];
   }
@@ -14,7 +15,7 @@ class ScriptGenerator {
     console.log(`\n✍️  [SCRIPT GENERATOR] Generating script for: "${topic}"`);
 
     const prompt = `Generate a viral short-form video script (${duration} seconds) about "${topic}".
-    
+
 Style: ${style}
 Tone: Professional but entertaining
 Target: TikTok/Instagram Reels
@@ -34,28 +35,18 @@ Format:
 [45-60s] CTA: ...`;
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: prompt
-          }]
-        })
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
       });
 
-      const data = await response.json();
+      if (response.content && response.content[0]) {
+        const script = response.content[0].text;
 
-      if (data.content && data.content[0]) {
-        const script = data.content[0].text;
-        
         const scriptObj = {
           id: Date.now(),
           topic,
@@ -73,12 +64,13 @@ Format:
 
         return scriptObj;
       } else {
-        this.lastError = data.error?.message || 'No content in API response';
+        this.lastError = 'No content in API response';
         console.error('❌ API error:', this.lastError);
         return null;
       }
     } catch (error) {
       console.error('❌ Error generating script:', error.message);
+      this.lastError = error.message;
       return null;
     }
   }
