@@ -1,145 +1,175 @@
-# 📱 Guide d'inscription aux plateformes de publication
+# 📱 Guide d'Intégration des Plateformes
 
-Video Creator AI peut publier sur 6 plateformes. Pour chacune, il faut **deux
-choses** :
+Ce guide vous aide à configurer chaque plateforme de publication pour Video Creator AI.
 
-1. **Un compte créateur** sur la plateforme (là où les vidéos apparaîtront).
-2. **Un accès développeur (API)** pour que le système publie automatiquement
-   à votre place — c'est l'identifiant à mettre dans le fichier `.env`.
+## 🎯 Résumé des Plateformes
 
-Le dashboard affiche ✅ quand une plateforme est connectée et ⚠️ quand elle ne
-l'est pas (dans ce cas la publication est **simulée**).
-
-> 💡 Conseil : commencez par créer les comptes créateurs et publiez
-> manuellement les scripts générés. Les accès API demandent souvent une
-> validation par la plateforme (quelques jours) — faites ces demandes en
-> parallèle.
+| Plateforme | Priorité | Difficulté | Temps |
+|------------|----------|-----------|-------|
+| 📱 **TikTok** | ⭐⭐⭐ | Moyen | 15 min |
+| 📸 **Instagram Reels** | ⭐⭐⭐ | Moyen | 15 min |
+| 🎬 **YouTube Shorts** | ⭐⭐ | Moyen | 20 min |
+| 𝕏 **Twitter/X** | ⭐ | Facile | 10 min |
+| 💼 **LinkedIn** | ⭐ | Facile | 10 min |
+| 👥 **Facebook** | ⭐ | Moyen | 15 min |
 
 ---
 
-## 🎵 TikTok — variable `TIKTOK_ACCESS_TOKEN`
+## 📱 TikTok - Configuration Complète
 
-**Compte créateur :**
-1. Téléchargez l'application TikTok ou allez sur https://www.tiktok.com/signup
-2. Créez le compte avec votre e-mail professionnel.
-3. Dans *Profil → Paramètres → Compte*, passez en **Compte professionnel**
-   (gratuit — donne accès aux statistiques).
+### Étape 1: Créer un Compte TikTok Business
+1. Aller sur https://www.tiktok.com/
+2. Créer un compte ou se connecter
+3. Basculer vers compte professionnel → Sélectionner "Créateur"
 
-**Accès API (publication automatique) :**
-1. Allez sur https://developers.tiktok.com et connectez-vous avec le compte TikTok.
-2. Créez une application (*Manage apps → Connect an app*).
-3. Demandez l'accès à la **Content Posting API** (produit « Direct Post »).
-   TikTok examine la demande — décrivez l'usage : « publication automatique de
-   mes propres vidéos courtes générées par IA ».
-4. Une fois approuvé, récupérez le jeton d'accès OAuth et mettez-le dans
-   `TIKTOK_ACCESS_TOKEN`.
+### Étape 2: Obtenir l'Accès à l'API TikTok
+1. Aller sur https://developers.tiktok.com/
+2. Cliquer "Register now" → Créer un compte développeur
+3. Créer une application:
+   - Nom: "Video Creator AI"
+   - Type: "Native app" ou "Server"
+4. Attendre l'approbation (24-48h)
+5. Obtenir: `TIKTOK_CLIENT_ID`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_ACCESS_TOKEN`
 
----
+### Étape 3: Configurer dans .env
+```
+TIKTOK_CLIENT_ID=your_client_id_here
+TIKTOK_CLIENT_SECRET=your_client_secret_here
+TIKTOK_ACCESS_TOKEN=your_access_token_here
+TIKTOK_VIDEO_UPLOAD_ENABLED=true
+```
 
-## 📸 Instagram Reels — variable `INSTAGRAM_ACCESS_TOKEN`
-
-**Compte créateur :**
-1. Créez un compte sur https://www.instagram.com (application ou web).
-2. Dans *Paramètres → Type de compte*, passez en **Compte professionnel**
-   (obligatoire pour l'API).
-
-**Accès API :**
-1. Il faut une **Page Facebook** liée au compte Instagram (voir section
-   Facebook ci-dessous) — c'est une exigence de Meta.
-2. Allez sur https://developers.facebook.com et créez une application
-   (*Mes apps → Créer une app*, type « Business »).
-3. Ajoutez le produit **Instagram Graph API**.
-4. Générez un jeton d'accès longue durée avec les permissions
-   `instagram_content_publish` et `pages_show_list` (outil : *Graph API
-   Explorer*).
-5. Mettez ce jeton dans `INSTAGRAM_ACCESS_TOKEN`.
+### 📊 Performances Attendues
+- Temps de publication: 2-5 secondes
+- Limite: 10 vidéos/jour (gratuit)
+- Format optimal: 9:16, 540x960px
 
 ---
 
-## 🎬 YouTube Shorts — variables `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET`
+## 📸 Instagram Reels - Configuration
 
-**Compte créateur :**
-1. Créez un compte Google (ou utilisez le vôtre) : https://accounts.google.com
-2. Allez sur https://www.youtube.com et créez votre **chaîne** (*Paramètres →
-   Créer une chaîne*).
+### Étape 1: Compte Business
+1. Aller sur https://www.instagram.com/
+2. Créer un compte ou se connecter
+3. Basculer vers compte professionnel
 
-**Accès API :**
-1. Allez sur https://console.cloud.google.com et créez un **projet**.
-2. Dans *API et services → Bibliothèque*, activez **YouTube Data API v3**.
-3. Dans *Identifiants*, créez un **ID client OAuth 2.0** (type : application
-   Web ou de bureau).
-4. Copiez l'ID client et le secret dans `YOUTUBE_CLIENT_ID` et
-   `YOUTUBE_CLIENT_SECRET`.
-5. Note : l'envoi de vidéos consomme le quota gratuit (une vidéo ≈ 1600
-   unités sur 10 000/jour — largement suffisant pour démarrer).
+### Étape 2: Meta Business
+1. Aller sur https://business.facebook.com/
+2. Créer un compte Business
+3. Connecter votre compte Instagram
 
----
+### Étape 3: Tokens Meta
+1. Aller sur https://developers.facebook.com/
+2. Créer une application
+3. Ajouter "Instagram Graph API" et "Facebook Graph API"
+4. Générer le token d'accès long terme
 
-## 𝕏 Twitter/X — variables `X_API_KEY` / `X_API_SECRET`
-
-**Compte créateur :**
-1. Créez le compte sur https://x.com/i/flow/signup
-
-**Accès API :**
-1. Allez sur https://developer.x.com et inscrivez-vous au programme
-   développeur (l'offre **Free** permet de poster).
-2. Créez un projet et une application dans le portail développeur.
-3. Dans l'onglet *Keys and tokens*, générez l'**API Key** et l'**API Secret**.
-4. Mettez-les dans `X_API_KEY` et `X_API_SECRET`.
+### Étape 4: .env
+```
+INSTAGRAM_BUSINESS_ACCOUNT_ID=your_account_id
+INSTAGRAM_ACCESS_TOKEN=your_access_token
+INSTAGRAM_VIDEO_UPLOAD_ENABLED=true
+```
 
 ---
 
-## 💼 LinkedIn — variable `LINKEDIN_ACCESS_TOKEN`
+## 🎬 YouTube Shorts - Configuration
 
-**Compte créateur :**
-1. Créez le compte sur https://www.linkedin.com/signup
-2. Optionnel mais recommandé : créez une **Page entreprise** (*Produits →
-   Créer une page LinkedIn*) pour publier au nom de la marque.
+### Étape 1: Canal YouTube
+1. Aller sur https://youtube.com/
+2. Créer un canal
+3. Vérifier le canal
 
-**Accès API :**
-1. Allez sur https://developer.linkedin.com et créez une application
-   (*Create app* — il faut la lier à une Page entreprise).
-2. Dans *Products*, demandez **Share on LinkedIn** (permission `w_member_social`).
-3. Générez un jeton OAuth 2.0 (outil : *Token Generator*).
-4. Mettez-le dans `LINKEDIN_ACCESS_TOKEN`.
+### Étape 2: API YouTube
+1. Aller sur https://console.cloud.google.com/
+2. Créer un projet "Video Creator AI"
+3. Ajouter "YouTube Data API v3"
+4. Créer des identifiants OAuth 2.0
 
----
-
-## 📘 Facebook — variable `FACEBOOK_PAGE_TOKEN`
-
-**Compte créateur :**
-1. Créez un compte sur https://www.facebook.com si besoin.
-2. Créez une **Page** (*Menu → Pages → Créer une Page*) — les publications
-   automatiques se font sur une Page, pas sur un profil personnel.
-
-**Accès API :**
-1. Réutilisez l'application Meta créée pour Instagram
-   (https://developers.facebook.com).
-2. Ajoutez les permissions `pages_manage_posts` et `pages_read_engagement`.
-3. Dans *Graph API Explorer*, générez un **jeton de Page** (sélectionnez
-   votre Page dans le menu déroulant).
-4. Mettez-le dans `FACEBOOK_PAGE_TOKEN`.
+### Étape 3: .env
+```
+YOUTUBE_API_KEY=your_api_key_here
+YOUTUBE_CHANNEL_ID=your_channel_id
+YOUTUBE_VIDEO_UPLOAD_ENABLED=true
+```
 
 ---
 
-## Ordre conseillé
+## 𝕏 Twitter/X - Configuration
 
-| Priorité | Plateforme | Pourquoi |
-|---|---|---|
-| 1 | TikTok | Cœur de cible des vidéos courtes virales |
-| 2 | YouTube Shorts | Portée massive, API bien documentée, quota gratuit |
-| 3 | Instagram Reels + Facebook | Même application Meta pour les deux — faites-les ensemble |
-| 4 | Twitter/X | Rapide à configurer (offre Free) |
-| 5 | LinkedIn | Utile surtout pour du contenu B2B |
+### Étape 1: API Access
+1. Aller sur https://developer.twitter.com/
+2. Appliquer pour l'accès
+3. Obtenir: `API_KEY`, `API_SECRET`, `BEARER_TOKEN`
 
-## Après inscription
+### Étape 2: .env
+```
+TWITTER_API_KEY=your_api_key
+TWITTER_API_SECRET=your_api_secret
+TWITTER_BEARER_TOKEN=your_bearer_token
+TWITTER_VIDEO_UPLOAD_ENABLED=true
+```
 
-1. Copiez chaque clé dans votre `.env` (jamais dans le code, jamais commité).
-2. Sur Render : *Environment → Add Environment Variable*.
-3. Redémarrez le serveur : le dashboard affichera ✅ pour chaque plateforme
-   connectée.
+---
 
-⚠️ La connexion des vraies API de publication (upload effectif des vidéos)
-n'est pas encore implémentée dans le code — le dashboard indique pour
-l'instant quels identifiants sont configurés. C'est l'étape suivante logique
-du projet une fois vos comptes créés.
+## 💼 LinkedIn - Configuration
+
+### Étape 1: API Access
+1. Aller sur https://www.linkedin.com/developers/
+2. Créer une application
+3. Attendre l'approbation
+
+### Étape 2: .env
+```
+LINKEDIN_CLIENT_ID=your_client_id
+LINKEDIN_CLIENT_SECRET=your_client_secret
+LINKEDIN_ACCESS_TOKEN=your_access_token
+LINKEDIN_PROFILE_ID=your_profile_id
+LINKEDIN_VIDEO_UPLOAD_ENABLED=true
+```
+
+---
+
+## 👥 Facebook - Configuration
+
+### Étape 1: Page & Business
+1. Créer une page Facebook
+2. Connecter à Meta Business
+
+### Étape 2: Tokens
+1. Aller sur https://developers.facebook.com/
+2. Générer un token d'accès long terme
+
+### Étape 3: .env
+```
+FACEBOOK_PAGE_ID=your_page_id
+FACEBOOK_ACCESS_TOKEN=your_access_token
+FACEBOOK_VIDEO_UPLOAD_ENABLED=true
+```
+
+---
+
+## 📊 Checklist d'Intégration
+
+### Priorité 1 - À Faire D'Abord
+- [ ] TikTok (API approuvée)
+- [ ] Instagram Reels (Meta Business connecté)
+
+### Priorité 2 - Après Priorité 1
+- [ ] YouTube Shorts (API active)
+- [ ] Facebook (Page créée)
+
+### Priorité 3 - Compléments
+- [ ] Twitter/X (API approuvée)
+- [ ] LinkedIn (App approuvée)
+
+---
+
+## 🚀 Prochaines Étapes
+
+1. Commencer par TikTok + Instagram (plus rapide)
+2. Ajouter YouTube + Facebook (couverture maximale)
+3. Optionnel: Twitter/X + LinkedIn (audiences spécifiques)
+4. Configurer Zapier pour l'auto-publication (ZAPIER-SETUP.md)
+
+✨ **Besoin d'aide?** Consultez les logs ou ouvrez une issue GitHub!
