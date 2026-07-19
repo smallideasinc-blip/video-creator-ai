@@ -169,28 +169,42 @@ app.post('/api/find-viral', async (req, res) => {
 
 // Générer un script via Claude API
 app.post('/api/generate-script', async (req, res) => {
+  console.log('\n🔵 [SERVER] /api/generate-script endpoint called');
+  console.log(`   API Key configured: ${Boolean(apiKey)}`);
+  console.log(`   Request body: ${JSON.stringify(req.body || {})}`);
+
   if (!apiKey) {
+    console.error('❌ [SERVER] API Key not configured!');
     return res.status(503).json({ error: 'CLAUDE_API_KEY non configurée sur le serveur' });
   }
 
   try {
     const { topic, style, duration } = req.body || {};
+    console.log(`   Topic: "${topic}", Style: "${style}", Duration: ${duration}`);
 
     // Sans sujet fourni, utiliser la tendance du moment
     let scriptTopic = topic;
     if (!scriptTopic) {
+      console.log('   [DEBUG] No topic provided, using top trend...');
       if (trendsAnalyzer.trends.length === 0) await trendsAnalyzer.analyzeTrends();
       const topTrend = trendsAnalyzer.getTopTrends(1)[0];
       scriptTopic = `${topTrend.category}: ${topTrend.keywords.join(', ')}`;
+      console.log(`   [DEBUG] Using trend: "${scriptTopic}"`);
     }
 
+    console.log(`   [DEBUG] Calling scriptGenerator.generateScript()...`);
     const script = await scriptGenerator.generateScript(scriptTopic, style || 'engaging', duration || 60);
+
     if (!script) {
+      console.error(`❌ [SERVER] Script generation failed: ${scriptGenerator.lastError}`);
       return res.status(502).json({ error: scriptGenerator.lastError || 'La génération du script a échoué' });
     }
+
+    console.log(`✅ [SERVER] Script generated successfully! ID: ${script.id}`);
     persistScript(script);
     res.json({ script });
   } catch (error) {
+    console.error(`❌ [SERVER] Exception in /api/generate-script:`, error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -343,5 +357,17 @@ app.post('/api/run-pipeline', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n🚀 DASHBOARD RUNNING AT: http://localhost:${PORT}`);
   console.log(`✅ API Key: ${apiKey ? '***CONFIGURÉE***' : 'NON CONFIGURÉE (génération de scripts désactivée)'}`);
+  if (apiKey) {
+    console.log(`   Key length: ${apiKey.length} characters`);
+    console.log(`   Key starts with: ${apiKey.substring(0, 15)}...`);
+  }
+  console.log(`📊 Engines initialized:`);
+  console.log(`   - Trends Analyzer: ready`);
+  console.log(`   - Script Generator: ${apiKey ? '✅' : '❌'}`);
+  console.log(`   - Viral Scraper: ready`);
+  console.log(`   - Content Replicator: ${apiKey ? '✅' : '❌'}`);
+  console.log(`   - Korean Adapter: ${apiKey ? '✅' : '❌'}`);
+  console.log(`   - AI Detection Agent: ${apiKey ? '✅' : '❌'}`);
+  console.log(`   - Multi-Publisher: ready`);
   console.log(`\n Press Ctrl + C to stop\n`);
 });
