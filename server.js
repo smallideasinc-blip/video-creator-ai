@@ -4,31 +4,78 @@
 // v1.4 : amélioration de script via feedback + choix des plateformes
 // v1.5 : état de connexion des plateformes + statistiques de publication
 
+console.log('[SERVER-START] 🔵 Server starting...');
+
 require('dotenv').config();
+console.log('[SERVER-START] ✅ Dotenv loaded');
 
+console.log('[SERVER-START] Loading Express...');
 const express = require('express');
-const TrendsAnalyzer = require('./trends-analyzer-engine.js');
-const ScriptGenerator = require('./script-generator.js');
-const MultiplatformPublisher = require('./multiplatform-publisher.js');
-const ViralVideoScraper = require('./viral-video-scraper.js');
-const ContentReplicator = require('./content-replicator.js');
-const KoreanContentAdapter = require('./korean-content-adapter.js');
-const DatabaseManager = require('./database-manager.js');
-const AIDetectionAgent = require('./ai-detection-agent.js');
+console.log('[SERVER-START] ✅ Express loaded');
 
+console.log('[SERVER-START] Loading TrendsAnalyzer...');
+const TrendsAnalyzer = require('./trends-analyzer-engine.js');
+console.log('[SERVER-START] ✅ TrendsAnalyzer loaded');
+
+console.log('[SERVER-START] Loading ScriptGenerator...');
+const ScriptGenerator = require('./script-generator.js');
+console.log('[SERVER-START] ✅ ScriptGenerator loaded');
+
+console.log('[SERVER-START] Loading MultiplatformPublisher...');
+const MultiplatformPublisher = require('./multiplatform-publisher.js');
+console.log('[SERVER-START] ✅ MultiplatformPublisher loaded');
+
+console.log('[SERVER-START] Loading ViralVideoScraper...');
+const ViralVideoScraper = require('./viral-video-scraper.js');
+console.log('[SERVER-START] ✅ ViralVideoScraper loaded');
+
+console.log('[SERVER-START] Loading ContentReplicator...');
+const ContentReplicator = require('./content-replicator.js');
+console.log('[SERVER-START] ✅ ContentReplicator loaded');
+
+console.log('[SERVER-START] Loading KoreanContentAdapter...');
+const KoreanContentAdapter = require('./korean-content-adapter.js');
+console.log('[SERVER-START] ✅ KoreanContentAdapter loaded');
+
+console.log('[SERVER-START] Loading DatabaseManager...');
+const DatabaseManager = require('./database-manager.js');
+console.log('[SERVER-START] ✅ DatabaseManager loaded');
+
+console.log('[SERVER-START] Loading AIDetectionAgent...');
+const AIDetectionAgent = require('./ai-detection-agent.js');
+console.log('[SERVER-START] ✅ AIDetectionAgent loaded');
+
+console.log('[SERVER-START] Creating Express app...');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const apiKey = process.env.CLAUDE_API_KEY;
+console.log('[SERVER-START] ✅ Express app created');
 
 // Instancier les moteurs (partagés entre les requêtes)
+console.log('[SERVER-START] Instantiating engines...');
 const trendsAnalyzer = new TrendsAnalyzer();
+console.log('[SERVER-START] ✅ TrendsAnalyzer instantiated');
+
 const scriptGenerator = new ScriptGenerator(apiKey);
+console.log('[SERVER-START] ✅ ScriptGenerator instantiated');
+
 const publisher = new MultiplatformPublisher();
+console.log('[SERVER-START] ✅ MultiplatformPublisher instantiated');
+
 const viralScraper = new ViralVideoScraper();
+console.log('[SERVER-START] ✅ ViralVideoScraper instantiated');
+
 const contentReplicator = new ContentReplicator(apiKey);
+console.log('[SERVER-START] ✅ ContentReplicator instantiated');
+
 const koreanAdapter = new KoreanContentAdapter(apiKey);
+console.log('[SERVER-START] ✅ KoreanContentAdapter instantiated');
+
 const db = new DatabaseManager();
+console.log('[SERVER-START] ✅ DatabaseManager instantiated');
+
 const aiDetectionAgent = new AIDetectionAgent(apiKey);
+console.log('[SERVER-START] ✅ AIDetectionAgent instantiated');
 
 // Connexion base de données : si MongoDB est configuré, recharger l'historique
 // des scripts pour qu'il survive aux redémarrages du serveur
