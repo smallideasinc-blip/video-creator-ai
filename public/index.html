@@ -29,11 +29,11 @@
                 </div>
             </div>
             <div class="controls">
-                <button id="btn-pipeline" onclick="runPipeline()">🚀 Pipeline Complet</button>
-                <button id="btn-analyze" onclick="runAnalysis()">📊 Analyser Tendances</button>
-                <button id="btn-script" onclick="generateScript()">✍️ Générer Script</button>
-                <button id="btn-viral" onclick="findViral()">🔥 Vidéos Virales</button>
-                <button id="btn-publish" onclick="publishContent()">📤 Publier</button>
+                <button id="btn-pipeline">🚀 Pipeline Complet</button>
+                <button id="btn-analyze">📊 Analyser Tendances</button>
+                <button id="btn-script">✍️ Générer Script</button>
+                <button id="btn-viral">🔥 Vidéos Virales</button>
+                <button id="btn-publish">📤 Publier</button>
             </div>
             <div class="status-box" id="platforms-box" style="margin-top: 30px;">
                 <h2>📱 Plateformes de publication</h2>
@@ -59,58 +59,51 @@
             <p>Video Creator AI © 2026 | Powered by Claude API</p>
         </footer>
     </div>
+
     <script>
+        console.log('[APP] Dashboard initializing...');
         const DEFAULT_PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
+        let scriptCache = [];
 
-        async function loadPlatforms() {
-            const container = document.getElementById('platform-choices');
-            if (container.querySelector('input')) return; // déjà rendu
-            try {
-                const response = await fetch('/api/platforms');
-                const data = await response.json();
-                container.innerHTML = data.platforms.map(p => `
-                    <label class="platform-choice" title="${p.connected
-                        ? 'Compte API connecté'
-                        : 'Non connecté (' + escapeHtml(p.envVar) + ' manquant) — publication simulée'}">
-                        <input type="checkbox" value="${escapeHtml(p.platform)}"
-                            ${DEFAULT_PLATFORMS.includes(p.platform) ? 'checked' : ''}>
-                        ${escapeHtml(p.platform)} ${p.connected ? '✅' : '⚠️'}
-                    </label>`).join('');
-            } catch (error) {
-                container.textContent = 'Erreur de chargement des plateformes.';
-            }
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
-        async function loadPublications() {
-            try {
-                const response = await fetch('/api/publications');
-                const data = await response.json();
-                const container = document.getElementById('publications');
-                if (data.history.length === 0) {
-                    container.textContent = 'Aucune publication pour l\'instant.';
-                    return;
-                }
-                const analyticsText = data.analytics.map(a =>
-                    `<span class="analytics-chip">${escapeHtml(a.platform)} :
-                        ${a.totalPosts} post(s), ${a.totalEngagement.toLocaleString('fr-FR')} interactions</span>`
-                ).join(' ');
-                const historyText = data.history.slice(0, 10).map(rec => {
-                    const date = new Date(rec.timestamp).toLocaleString('fr-FR');
-                    const platforms = rec.platforms.map(p => escapeHtml(p.platform)).join(', ');
-                    return `<div class="history-item">
-                        <span class="history-info">${date} — 📱 ${platforms}<br>
-                        <em>${escapeHtml(rec.content)}</em></span>
-                    </div>`;
-                }).join('');
-                container.innerHTML = `<div class="analytics-row">${analyticsText}</div>${historyText}`;
-            } catch (error) {
-                document.getElementById('publications').textContent = 'Erreur de chargement des publications.';
-            }
+        function setBusy(busy) {
+            document.querySelectorAll('.controls button').forEach(b => b.disabled = busy);
         }
 
-        function selectedPlatforms() {
-            return Array.from(document.querySelectorAll('#platform-choices input:checked'))
-                .map(input => input.value);
+        function showResult(title, text) {
+            console.log('[APP] showResult called:', title);
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('result-title').textContent = title;
+            document.getElementById('result').textContent = text;
+            loadStats();
+            loadScripts();
+            loadPublications();
+        }
+
+        async function callApi(path, body) {
+            console.log(`[FRONTEND-API] POST ${path}`, body);
+            setBusy(true);
+            try {
+                const response = await fetch(path, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body || {})
+                });
+                const data = await response.json();
+                console.log(`[FRONTEND-API] Response:`, data);
+                if (!response.ok) throw new Error(data.error || 'Erreur serveur');
+                return data;
+            } catch (error) {
+                console.error(`[FRONTEND-API] Error:`, error.message);
+                throw error;
+            } finally {
+                setBusy(false);
+            }
         }
 
         async function loadStats() {
@@ -131,16 +124,22 @@
             }
         }
 
-        function showResult(title, text) {
-            document.getElementById('result-box').style.display = 'block';
-            document.getElementById('result-title').textContent = title;
-            document.getElementById('result').textContent = text;
-            loadStats();
-            loadScripts();
-            loadPublications();
+        async function loadPlatforms() {
+            const container = document.getElementById('platform-choices');
+            if (container.querySelector('input')) return;
+            try {
+                const response = await fetch('/api/platforms');
+                const data = await response.json();
+                container.innerHTML = data.platforms.map(p => `
+                    <label class="platform-choice" title="${p.connected ? 'Compte API connecté' : 'Non connecté — publication simulée'}">
+                        <input type="checkbox" value="${escapeHtml(p.platform)}"
+                            ${DEFAULT_PLATFORMS.includes(p.platform) ? 'checked' : ''}>
+                        ${escapeHtml(p.platform)} ${p.connected ? '✅' : '⚠️'}
+                    </label>`).join('');
+            } catch (error) {
+                container.textContent = 'Erreur de chargement des plateformes.';
+            }
         }
-
-        let scriptCache = [];
 
         async function loadScripts() {
             try {
@@ -169,10 +168,35 @@
             }
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        async function loadPublications() {
+            try {
+                const response = await fetch('/api/publications');
+                const data = await response.json();
+                const container = document.getElementById('publications');
+                if (data.history.length === 0) {
+                    container.textContent = 'Aucune publication pour l\'instant.';
+                    return;
+                }
+                const analyticsText = data.analytics.map(a =>
+                    `<span class="analytics-chip">${escapeHtml(a.platform)}: ${a.totalPosts} post(s), ${a.totalEngagement.toLocaleString('fr-FR')} interactions</span>`
+                ).join(' ');
+                const historyText = data.history.slice(0, 10).map(rec => {
+                    const date = new Date(rec.timestamp).toLocaleString('fr-FR');
+                    const platforms = rec.platforms.map(p => escapeHtml(p.platform)).join(', ');
+                    return `<div class="history-item">
+                        <span class="history-info">${date} — 📱 ${platforms}<br>
+                        <em>${escapeHtml(rec.content)}</em></span>
+                    </div>`;
+                }).join('');
+                container.innerHTML = `<div class="analytics-row">${analyticsText}</div>${historyText}`;
+            } catch (error) {
+                document.getElementById('publications').textContent = 'Erreur de chargement des publications.';
+            }
+        }
+
+        function selectedPlatforms() {
+            return Array.from(document.querySelectorAll('#platform-choices input:checked'))
+                .map(input => input.value);
         }
 
         function viewScript(id) {
@@ -180,43 +204,6 @@
             if (!s) return;
             showResult(`✍️ Script: ${s.topic}`, s.script);
             document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function setBusy(busy) {
-            document.querySelectorAll('.controls button').forEach(b => b.disabled = busy);
-        }
-
-        async function callApi(path, body) {
-            console.log(`[FRONTEND-API] callApi('${path}') called`);
-            console.log(`[FRONTEND-API] Body:`, body);
-            setBusy(true);
-            try {
-                console.log(`[FRONTEND-API] Sending fetch request...`);
-                const startTime = Date.now();
-                const response = await fetch(path, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body || {})
-                });
-                const elapsed = Date.now() - startTime;
-                console.log(`[FRONTEND-API] ✅ Fetch completed in ${elapsed}ms`);
-                console.log(`[FRONTEND-API] Response status: ${response.status} ${response.statusText}`);
-
-                const data = await response.json();
-                console.log(`[FRONTEND-API] Response data:`, data);
-
-                if (!response.ok) {
-                    console.error(`[FRONTEND-API] ❌ Response not ok: ${response.status}`);
-                    throw new Error(data.error || 'Erreur serveur');
-                }
-                console.log(`[FRONTEND-API] ✅ Success`);
-                return data;
-            } catch (error) {
-                console.error(`[FRONTEND-API] ❌ Error:`, error.message);
-                throw error;
-            } finally {
-                setBusy(false);
-            }
         }
 
         async function runPipeline() {
@@ -247,23 +234,15 @@
         }
 
         async function generateScript() {
-            console.log('[FRONTEND] generateScript() called');
-            const topic = prompt('Sujet du script (laisser vide = tendance du moment):') ;
-            console.log(`[FRONTEND] Topic input: "${topic}"`);
-            if (topic === null) {
-                console.log('[FRONTEND] User cancelled prompt');
-                return;
-            }
-            console.log('[FRONTEND] Calling callApi(/api/generate-script)...');
+            console.log('[APP] generateScript() called');
+            const topic = prompt('Sujet du script (laisser vide = tendance du moment):');
+            console.log('[APP] Topic:', topic);
+            if (topic === null) return;
             showResult('✍️ Génération', 'Claude rédige le script... (~15 secondes)');
             try {
                 const data = await callApi('/api/generate-script', topic ? { topic } : {});
-                console.log('[FRONTEND] ✅ API Response received');
-                console.log('[FRONTEND] Script data:', data.script);
                 showResult(`✍️ Script: ${data.script.topic}`, data.script.script);
             } catch (error) {
-                console.error('[FRONTEND] ❌ Error in generateScript:', error);
-                console.error('[FRONTEND] Error message:', error.message);
                 showResult('❌ Erreur', error.message);
             }
         }
@@ -282,7 +261,7 @@
         }
 
         async function improveScript(scriptId) {
-            const feedback = prompt('Quel feedback pour améliorer ce script ?\n(ex : "plus court et plus percutant", "ajoute une statistique choc")');
+            const feedback = prompt('Quel feedback pour améliorer ce script ?');
             if (!feedback) return;
             showResult('🔧 Amélioration', 'Claude retravaille le script... (~15 secondes)');
             try {
@@ -313,7 +292,25 @@
             }
         }
 
-        window.onload = () => { loadStats(); loadPlatforms(); loadScripts(); loadPublications(); };
+        // Event listeners pour les boutons
+        console.log('[APP] Attaching event listeners...');
+        document.getElementById('btn-pipeline').addEventListener('click', runPipeline);
+        document.getElementById('btn-analyze').addEventListener('click', runAnalysis);
+        document.getElementById('btn-script').addEventListener('click', generateScript);
+        document.getElementById('btn-viral').addEventListener('click', findViral);
+        document.getElementById('btn-publish').addEventListener('click', publishContent);
+        console.log('[APP] Event listeners attached');
+
+        // Initialisation au chargement de la page
+        window.addEventListener('load', () => {
+            console.log('[APP] Page loaded, initializing...');
+            loadStats();
+            loadPlatforms();
+            loadScripts();
+            loadPublications();
+        });
+
+        console.log('[APP] Dashboard code loaded and ready');
     </script>
 </body>
 </html>
