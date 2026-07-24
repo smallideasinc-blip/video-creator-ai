@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Simple</title>
+</head>
+<body>
+    <h1>Test JavaScript Bouton</h1>
+    <button id="test-btn">Cliquez ici</button>
+    <p id="message"></p>
+
+    <script>
+        console.log('✅ Script chargé');
+        document.getElementById('test-btn').addEventListener('click', function() {
+            console.log('✅ Bouton cliqué!');
+            alert('✅ JavaScript fonctionne!');
+            document.getElementById('message').textContent = '✅ Bouton fonctionne!';
+        });
+        console.log('✅ Event listener attaché');
+    </script>
+</body>
+</html>

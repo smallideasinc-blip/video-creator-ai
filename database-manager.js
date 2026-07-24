@@ -15,6 +15,7 @@ class DatabaseManager {
   defineSchemas() {
     // Schema pour les scripts générés
     this.ScriptSchema = new mongoose.Schema({
+      id: Number,
       topic: String,
       style: String,
       duration: Number,
@@ -114,8 +115,6 @@ class DatabaseManager {
       
       // Connexion à MongoDB
       await mongoose.connect(this.dbUri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         serverSelectionTimeoutMS: 5000
       });
 
@@ -170,6 +169,36 @@ class DatabaseManager {
       this.inMemory.scripts.push(scriptData);
       console.log('💾 Script saved to memory');
     }
+  }
+
+  async updateScript(script) {
+    if (this.connected) {
+      try {
+        await this.Script.updateOne(
+          { id: script.id },
+          { $set: { script: script.script, status: script.status } }
+        );
+        console.log('✅ Script updated in database');
+      } catch (error) {
+        console.error('❌ Error updating script:', error.message);
+      }
+    }
+    // Fallback mémoire : saveScript stocke la même référence d'objet,
+    // les modifications en place sont donc déjà visibles
+  }
+
+  async getScripts() {
+    if (this.connected) {
+      try {
+        return await this.Script.find().sort({ createdAt: 1 }).lean();
+      } catch (error) {
+        console.error('❌ Error loading scripts:', error.message);
+        return [];
+      }
+    } else if (this.inMemory) {
+      return this.inMemory.scripts;
+    }
+    return [];
   }
 
   async saveViralVideo(videoData) {

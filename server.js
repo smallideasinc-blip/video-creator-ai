@@ -1,27 +1,109 @@
-// DASHBOARD SERVER v1.2
+// DASHBOARD SERVER v1.5
 // Serveur web pour gérer Video Creator AI — branché sur les vrais moteurs
+// v1.3 : historique des scripts + persistance MongoDB (fallback mémoire)
+// v1.4 : amélioration de script via feedback + choix des plateformes
+// v1.5 : état de connexion des plateformes + statistiques de publication
+
+console.log('[SERVER-START] 🔵 Server starting...');
 
 require('dotenv').config();
+console.log('[SERVER-START] ✅ Dotenv loaded');
 
+console.log('[SERVER-START] Loading Express...');
 const express = require('express');
-const TrendsAnalyzer = require('./trends-analyzer-engine.js');
-const ScriptGenerator = require('./script-generator.js');
-const MultiplatformPublisher = require('./multiplatform-publisher.js');
-const ViralVideoScraper = require('./viral-video-scraper.js');
-const ContentReplicator = require('./content-replicator.js');
-const KoreanContentAdapter = require('./korean-content-adapter.js');
+console.log('[SERVER-START] ✅ Express loaded');
 
+console.log('[SERVER-START] Loading TrendsAnalyzer...');
+const TrendsAnalyzer = require('./trends-analyzer-engine.js');
+console.log('[SERVER-START] ✅ TrendsAnalyzer loaded');
+
+console.log('[SERVER-START] Loading ScriptGenerator...');
+const ScriptGenerator = require('./script-generator.js');
+console.log('[SERVER-START] ✅ ScriptGenerator loaded');
+
+console.log('[SERVER-START] Loading MultiplatformPublisher...');
+const MultiplatformPublisher = require('./multiplatform-publisher.js');
+console.log('[SERVER-START] ✅ MultiplatformPublisher loaded');
+
+console.log('[SERVER-START] Loading ViralVideoScraper...');
+const ViralVideoScraper = require('./viral-video-scraper.js');
+console.log('[SERVER-START] ✅ ViralVideoScraper loaded');
+
+console.log('[SERVER-START] Loading ContentReplicator...');
+const ContentReplicator = require('./content-replicator.js');
+console.log('[SERVER-START] ✅ ContentReplicator loaded');
+
+console.log('[SERVER-START] Loading KoreanContentAdapter...');
+const KoreanContentAdapter = require('./korean-content-adapter.js');
+console.log('[SERVER-START] ✅ KoreanContentAdapter loaded');
+
+console.log('[SERVER-START] Loading DatabaseManager...');
+const DatabaseManager = require('./database-manager.js');
+console.log('[SERVER-START] ✅ DatabaseManager loaded');
+
+console.log('[SERVER-START] Loading AIDetectionAgent...');
+const AIDetectionAgent = require('./ai-detection-agent.js');
+console.log('[SERVER-START] ✅ AIDetectionAgent loaded');
+
+console.log('[SERVER-START] Creating Express app...');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const apiKey = process.env.CLAUDE_API_KEY;
+console.log('[SERVER-START] ✅ Express app created');
 
 // Instancier les moteurs (partagés entre les requêtes)
+console.log('[SERVER-START] Instantiating engines...');
 const trendsAnalyzer = new TrendsAnalyzer();
+console.log('[SERVER-START] ✅ TrendsAnalyzer instantiated');
+
 const scriptGenerator = new ScriptGenerator(apiKey);
+console.log('[SERVER-START] ✅ ScriptGenerator instantiated');
+
 const publisher = new MultiplatformPublisher();
+console.log('[SERVER-START] ✅ MultiplatformPublisher instantiated');
+
 const viralScraper = new ViralVideoScraper();
+console.log('[SERVER-START] ✅ ViralVideoScraper instantiated');
+
 const contentReplicator = new ContentReplicator(apiKey);
+console.log('[SERVER-START] ✅ ContentReplicator instantiated');
+
 const koreanAdapter = new KoreanContentAdapter(apiKey);
+console.log('[SERVER-START] ✅ KoreanContentAdapter instantiated');
+
+const db = new DatabaseManager();
+console.log('[SERVER-START] ✅ DatabaseManager instantiated');
+
+const aiDetectionAgent = new AIDetectionAgent(apiKey);
+console.log('[SERVER-START] ✅ AIDetectionAgent instantiated');
+
+// Connexion base de données : si MongoDB est configuré, recharger l'historique
+// des scripts pour qu'il survive aux redémarrages du serveur
+db.connect().then(async (connected) => {
+  if (!connected) return;
+  const saved = await db.getScripts();
+  for (const doc of saved) {
+    scriptGenerator.generatedScripts.push({
+      id: doc.id || new Date(doc.createdAt).getTime(),
+      topic: doc.topic,
+      style: doc.style,
+      duration: doc.duration,
+      script: doc.script,
+      createdAt: doc.createdAt,
+      status: doc.status
+    });
+  }
+  if (saved.length > 0) {
+    console.log(`💾 ${saved.length} script(s) rechargé(s) depuis MongoDB`);
+  }
+});
+
+// Sauvegarde d'un script sans bloquer la réponse HTTP
+function persistScript(script) {
+  db.saveScript(script).catch((err) => {
+    console.error('❌ Persistance du script échouée:', err.message);
+  });
+}
 
 app.use(express.json());
 
@@ -62,8 +144,53 @@ app.get('/api/stats', (req, res) => {
     videosFound: viralScraper.viralVideos.length,
     trendsAnalyzed: trendsAnalyzer.trends.length,
     contentPublished: publisher.getPublishHistory().length,
+    platforms: publisher.platforms,
+    dbConnected: db.connected,
     uptime: new Date().toLocaleTimeString()
   });
+});
+
+// État de connexion des plateformes (identifiants API configurés ou non)
+app.get('/api/platforms', (req, res) => {
+  res.json({ platforms: publisher.getConnectionStatus() });
+});
+
+// Historique et statistiques des publications
+app.get('/api/publications', (req, res) => {
+  const history = publisher.getPublishHistory()
+    .slice()
+    .reverse()
+    .map(record => ({
+      id: record.id,
+      content: record.content,
+      timestamp: record.timestamp,
+      platforms: record.platforms.map(p => ({
+        platform: p.platform,
+        url: p.url,
+        engagement: p.engagement
+      }))
+    }));
+  const analytics = publisher.platforms
+    .map(name => publisher.getAnalytics(name))
+    .filter(Boolean);
+  res.json({ history, analytics });
+});
+
+// Historique des scripts générés (du plus récent au plus ancien)
+app.get('/api/scripts', (req, res) => {
+  const scripts = scriptGenerator.getAllScripts()
+    .slice()
+    .reverse()
+    .map(s => ({
+      id: s.id,
+      topic: s.topic,
+      style: s.style,
+      duration: s.duration,
+      script: s.script,
+      createdAt: s.createdAt,
+      status: s.status
+    }));
+  res.json({ scripts });
 });
 
 // Analyser les tendances
@@ -89,43 +216,147 @@ app.post('/api/find-viral', async (req, res) => {
 
 // Générer un script via Claude API
 app.post('/api/generate-script', async (req, res) => {
+  console.log('\n🔵 [SERVER] /api/generate-script endpoint called');
+  console.log(`   API Key configured: ${Boolean(apiKey)}`);
+  console.log(`   Request body: ${JSON.stringify(req.body || {})}`);
+
   if (!apiKey) {
+    console.error('❌ [SERVER] API Key not configured!');
     return res.status(503).json({ error: 'CLAUDE_API_KEY non configurée sur le serveur' });
   }
 
   try {
     const { topic, style, duration } = req.body || {};
+    console.log(`   Topic: "${topic}", Style: "${style}", Duration: ${duration}`);
 
     // Sans sujet fourni, utiliser la tendance du moment
     let scriptTopic = topic;
     if (!scriptTopic) {
+      console.log('   [DEBUG] No topic provided, using top trend...');
       if (trendsAnalyzer.trends.length === 0) await trendsAnalyzer.analyzeTrends();
       const topTrend = trendsAnalyzer.getTopTrends(1)[0];
       scriptTopic = `${topTrend.category}: ${topTrend.keywords.join(', ')}`;
+      console.log(`   [DEBUG] Using trend: "${scriptTopic}"`);
     }
 
+    console.log(`   [DEBUG] Calling scriptGenerator.generateScript()...`);
     const script = await scriptGenerator.generateScript(scriptTopic, style || 'engaging', duration || 60);
+
     if (!script) {
+      console.error(`❌ [SERVER] Script generation failed: ${scriptGenerator.lastError}`);
       return res.status(502).json({ error: scriptGenerator.lastError || 'La génération du script a échoué' });
     }
+
+    console.log(`✅ [SERVER] Script generated successfully! ID: ${script.id}`);
+    persistScript(script);
     res.json({ script });
+  } catch (error) {
+    console.error(`❌ [SERVER] Exception in /api/generate-script:`, error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Améliorer un script existant à partir d'un feedback (via Claude)
+app.post('/api/improve-script', async (req, res) => {
+  if (!apiKey) {
+    return res.status(503).json({ error: 'CLAUDE_API_KEY non configurée sur le serveur' });
+  }
+
+  try {
+    const { scriptId, feedback } = req.body || {};
+    if (scriptId === undefined || !feedback) {
+      return res.status(400).json({ error: 'scriptId et feedback sont requis' });
+    }
+
+    const script = scriptGenerator.getAllScripts().find(s => String(s.id) === String(scriptId));
+    if (!script) {
+      return res.status(404).json({ error: `Script ${scriptId} introuvable` });
+    }
+
+    const improved = await scriptGenerator.improveScript(script.id, feedback);
+    if (!improved) {
+      return res.status(502).json({ error: 'L\'amélioration du script a échoué' });
+    }
+
+    db.updateScript(improved).catch(() => {});
+    res.json({ script: improved });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Publier le dernier script généré
+// Vérifier si un script semble généré par IA avant publication
+// Endpoint de sécurité : { scriptId, platform }
+app.post('/api/check-ai-detection', async (req, res) => {
+  try {
+    const { scriptId, platform } = req.body || {};
+
+    const scripts = scriptGenerator.getAllScripts();
+    let script;
+
+    if (scriptId !== undefined) {
+      script = scripts.find(s => String(s.id) === String(scriptId));
+      if (!script) {
+        return res.status(404).json({ error: `Script ${scriptId} introuvable` });
+      }
+    } else {
+      script = scripts[scripts.length - 1];
+      if (!script) {
+        return res.status(400).json({ error: 'Aucun script à vérifier — générez un script d\'abord' });
+      }
+    }
+
+    const analysis = await aiDetectionAgent.verifyBeforePublication(script, platform || 'general');
+
+    res.json({
+      scriptId: script.id,
+      platform: platform || 'general',
+      aiDetectionResult: analysis
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Publier un script : { scriptId, platforms } optionnels
+// (sinon : dernier script généré, sur TikTok / Instagram Reels / YouTube Shorts)
 app.post('/api/publish', async (req, res) => {
   try {
     const scripts = scriptGenerator.getAllScripts();
     if (scripts.length === 0) {
       return res.status(400).json({ error: 'Aucun script à publier — générez un script d\'abord' });
     }
-    const latest = scripts[scripts.length - 1];
-    const record = await publisher.publishContent(
-      latest.script,
-      ['TikTok', 'Instagram Reels', 'YouTube Shorts']
-    );
+
+    const { scriptId, platforms } = req.body || {};
+    let script;
+    if (scriptId !== undefined) {
+      script = scripts.find(s => String(s.id) === String(scriptId));
+      if (!script) {
+        return res.status(404).json({ error: `Script ${scriptId} introuvable` });
+      }
+    } else {
+      script = scripts[scripts.length - 1];
+    }
+
+    let targetPlatforms = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
+    if (Array.isArray(platforms) && platforms.length > 0) {
+      const invalid = platforms.filter(p => !publisher.platforms.includes(p));
+      if (invalid.length > 0) {
+        return res.status(400).json({
+          error: `Plateforme(s) inconnue(s) : ${invalid.join(', ')}. Disponibles : ${publisher.platforms.join(', ')}`
+        });
+      }
+      targetPlatforms = platforms;
+    }
+
+    const record = await publisher.publishContent(script.script, targetPlatforms);
+    script.status = 'published';
+    db.savePublication({
+      content: script.script,
+      platforms: record.platforms.map(p => p.platform),
+      status: 'published',
+      publishedAt: new Date()
+    }).catch(() => {});
     res.json({ published: record });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -151,6 +382,7 @@ app.post('/api/run-pipeline', async (req, res) => {
 
     let published = null;
     if (script) {
+      persistScript(script);
       published = await publisher.publishContent(
         script.script,
         ['TikTok', 'Instagram Reels', 'YouTube Shorts']
@@ -172,5 +404,17 @@ app.post('/api/run-pipeline', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n🚀 DASHBOARD RUNNING AT: http://localhost:${PORT}`);
   console.log(`✅ API Key: ${apiKey ? '***CONFIGURÉE***' : 'NON CONFIGURÉE (génération de scripts désactivée)'}`);
+  if (apiKey) {
+    console.log(`   Key length: ${apiKey.length} characters`);
+    console.log(`   Key starts with: ${apiKey.substring(0, 15)}...`);
+  }
+  console.log(`📊 Engines initialized:`);
+  console.log(`   - Trends Analyzer: ready`);
+  console.log(`   - Script Generator: ${apiKey ? '✅' : '❌'}`);
+  console.log(`   - Viral Scraper: ready`);
+  console.log(`   - Content Replicator: ${apiKey ? '✅' : '❌'}`);
+  console.log(`   - Korean Adapter: ${apiKey ? '✅' : '❌'}`);
+  console.log(`   - AI Detection Agent: ${apiKey ? '✅' : '❌'}`);
+  console.log(`   - Multi-Publisher: ready`);
   console.log(`\n Press Ctrl + C to stop\n`);
 });

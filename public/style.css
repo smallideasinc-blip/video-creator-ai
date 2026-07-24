@@ -78,6 +78,67 @@ button:hover {
     background: #764ba2;
 }
 
+#platform-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+}
+
+.platform-choice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.platform-note {
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.analytics-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.analytics-chip {
+    background: #667eea;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.85em;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.history-actions button {
+    flex: none;
+    min-width: 0;
+    padding: 6px 12px;
+    font-size: 0.85em;
+}
+
 footer {
     background: #f8f9fa;
     padding: 20px;

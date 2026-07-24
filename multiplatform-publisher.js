@@ -5,6 +5,30 @@ class MultiplatformPublisher {
   constructor() {
     this.platforms = ['TikTok', 'Instagram Reels', 'YouTube Shorts', 'Twitter/X', 'LinkedIn', 'Facebook'];
     this.publishedContent = [];
+
+    // Variable d'environnement attendue pour connecter chaque plateforme
+    // (voir GUIDE-PLATEFORMES.md pour obtenir chaque identifiant)
+    this.platformCredentials = {
+      'TikTok': 'TIKTOK_ACCESS_TOKEN',
+      'Instagram Reels': 'INSTAGRAM_ACCESS_TOKEN',
+      'YouTube Shorts': 'YOUTUBE_CLIENT_SECRET',
+      'Twitter/X': 'X_API_KEY',
+      'LinkedIn': 'LINKEDIN_ACCESS_TOKEN',
+      'Facebook': 'FACEBOOK_PAGE_TOKEN'
+    };
+  }
+
+  // État de connexion de chaque plateforme : connectée si son identifiant
+  // API est présent dans l'environnement, sinon publication simulée
+  getConnectionStatus() {
+    return this.platforms.map(platform => {
+      const envVar = this.platformCredentials[platform];
+      return {
+        platform,
+        envVar,
+        connected: Boolean(process.env[envVar])
+      };
+    });
   }
 
   async publishContent(content, platforms = this.platforms) {

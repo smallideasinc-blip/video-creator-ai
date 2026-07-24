@@ -1,20 +1,25 @@
 // SCRIPT GENERATOR ENGINE v1.1
 // Génère des scripts vidéo via Claude API
 
-
+const Anthropic = require("@anthropic-ai/sdk");
 
 class ScriptGenerator {
   constructor(apiKey) {
+    console.log(`[SCRIPT-GEN] Constructor called with apiKey: ${apiKey ? 'EXISTS' : 'MISSING'}`);
     this.apiKey = apiKey;
-    this.model = 'claude-opus-4-6';
+    this.client = new Anthropic({ apiKey });
+    this.model = 'claude-haiku-4-5-20251001';
     this.generatedScripts = [];
+    console.log(`[SCRIPT-GEN] Anthropic client initialized with model: ${this.model}`);
   }
 
   async generateScript(topic, style = 'engaging', duration = 60) {
     console.log(`\n✍️  [SCRIPT GENERATOR] Generating script for: "${topic}"`);
+    console.log(`   Style: ${style}, Duration: ${duration}s`);
+    console.log(`   Model: ${this.model}, API Key: ${this.apiKey ? 'SET' : 'MISSING'}`);
 
     const prompt = `Generate a viral short-form video script (${duration} seconds) about "${topic}".
-    
+
 Style: ${style}
 Tone: Professional but entertaining
 Target: TikTok/Instagram Reels
@@ -34,28 +39,25 @@ Format:
 [45-60s] CTA: ...`;
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: prompt
-          }]
-        })
+      console.log(`   [API-CALL] Sending request to Claude API...`);
+      const startTime = Date.now();
+
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
       });
 
-      const data = await response.json();
+      const elapsed = Date.now() - startTime;
+      console.log(`   [API-CALL] ✅ Response received in ${elapsed}ms`);
+      console.log(`   [API-CALL] Response type: ${response.content ? 'HAS CONTENT' : 'NO CONTENT'}`);
 
-      if (data.content && data.content[0]) {
-        const script = data.content[0].text;
-        
+      if (response.content && response.content[0]) {
+        const script = response.content[0].text;
+
         const scriptObj = {
           id: Date.now(),
           topic,
@@ -69,16 +71,22 @@ Format:
         this.generatedScripts.push(scriptObj);
 
         console.log('✅ Script generated successfully!');
+        console.log(`   Script ID: ${scriptObj.id}`);
+        console.log(`   Length: ${script.length} characters`);
         console.log(`\n📝 SCRIPT:\n${script}\n`);
 
         return scriptObj;
       } else {
-        this.lastError = data.error?.message || 'No content in API response';
+        this.lastError = 'No content in API response';
         console.error('❌ API error:', this.lastError);
+        console.error('   Response:', JSON.stringify(response, null, 2));
         return null;
       }
     } catch (error) {
       console.error('❌ Error generating script:', error.message);
+      console.error('   Error type:', error.constructor.name);
+      console.error('   Full error:', error);
+      this.lastError = error.message;
       return null;
     }
   }

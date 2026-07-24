@@ -1,13 +1,13 @@
 // CONTENT REPLICATOR ENGINE v1.1
 // Réplique les concepts viraux sans plagier (génère du NOUVEAU contenu)
 const mongoose = require('mongoose');
-
-
+const Anthropic = require("@anthropic-ai/sdk");
 
 class ContentReplicator {
   constructor(apiKey) {
     this.apiKey = apiKey;
-    this.model = 'claude-opus-4-6';
+    this.client = new Anthropic({ apiKey });
+    this.model = 'claude-haiku-4-5-20251001';
     this.replicatedContent = [];
   }
 
@@ -57,32 +57,22 @@ VIBES: [Emotion it triggers]
 CTA: [Call to action]`;
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: 800,
-          messages: [{
-            role: 'user',
-            content: prompt
-          }]
-        })
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 800,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
       });
 
-      const data = await response.json();
-
-      if (data.content && data.content[0]) {
+      if (response.content && response.content[0]) {
         const replicatedConcept = {
           id: Date.now(),
           baseVideo: viralVideo.title,
           hookType,
           category: viralVideo.category,
-          concept: data.content[0].text,
+          concept: response.content[0].text,
           createdAt: new Date(),
           estimatedViralScore: Math.floor(Math.random() * 30 + 70) // 70-100
         };
@@ -137,26 +127,17 @@ PLATFORM TIPS:
 HASHTAGS:`;
 
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': this.apiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: this.model,
-            max_tokens: 500,
-            messages: [{
-              role: 'user',
-              content: prompt
-            }]
-          })
+        const response = await this.client.messages.create({
+          model: this.model,
+          max_tokens: 500,
+          messages: [{
+            role: 'user',
+            content: prompt
+          }]
         });
 
-        const data = await response.json();
-        if (data.content && data.content[0]) {
-          adaptations[platform] = data.content[0].text;
+        if (response.content && response.content[0]) {
+          adaptations[platform] = response.content[0].text;
           console.log(`   ✅ Adapted for ${platform}`);
         }
       } catch (error) {

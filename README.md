@@ -11,20 +11,31 @@ Système de création de vidéos virales assisté par IA, avec un dashboard web 
 | 🇰🇷 Korean Adapter | Adapte du contenu coréen en FR/EN via l'API Claude |
 | 📱 Multi-Publisher | Publication multi-plateformes (simulation pour l'instant) |
 
-## Démarrage
+## 🚀 Quick Start
 
+### 1. Installation
 ```bash
 npm install
-cp .env.example .env   # puis remplir les vraies valeurs
-npm start              # dashboard sur http://localhost:3000
+npm start
 ```
+Server starts on http://localhost:3000
+
+### 2. Configure Your API Key
+⚠️ **REQUIRED**: Add your Claude API key to `.env`
+
+See [SETUP-API-KEY.md](./SETUP-API-KEY.md) for detailed instructions.
+
+In short:
+1. Get key from https://console.anthropic.com/
+2. Edit `.env`: `CLAUDE_API_KEY=sk-ant-...`
+3. Refresh the dashboard
 
 ## Configuration (.env)
 
 ```
-CLAUDE_API_KEY=sk-ant-api03-...   # clé API sur console.anthropic.com
+CLAUDE_API_KEY=sk-ant-api03-...   # clé API sur console.anthropic.com (REQUIRED)
 MONGODB_URI=mongodb+srv://...     # optionnel (fallback en mémoire)
-NODE_ENV=production
+NODE_ENV=development              # development ou production
 ```
 
 ⚠️ **Ne jamais committer le fichier `.env`** — il est dans le `.gitignore`.
@@ -37,12 +48,31 @@ l'erreur renvoyée par l'API.
 
 | Route | Méthode | Description |
 |---|---|---|
-| `/api/stats` | GET | État réel des moteurs (compteurs) |
+| `/api/stats` | GET | État réel des moteurs (compteurs, connexion MongoDB) |
+| `/api/platforms` | GET | État de connexion des plateformes (identifiants API configurés ou non) |
+| `/api/publications` | GET | Historique et statistiques des publications |
+| `/api/scripts` | GET | Historique des scripts générés (du plus récent au plus ancien) |
 | `/api/analyze` | POST | Analyse des tendances |
 | `/api/find-viral` | POST | Top 5 vidéos virales |
 | `/api/generate-script` | POST | Génère un script (`{topic, style, duration}` optionnels) |
-| `/api/publish` | POST | Publie le dernier script généré |
+| `/api/improve-script` | POST | Améliore un script existant via Claude (`{scriptId, feedback}` requis) |
+| `/api/publish` | POST | Publie un script (`{scriptId, platforms}` optionnels, sinon le dernier généré sur TikTok / Instagram Reels / YouTube Shorts) |
 | `/api/run-pipeline` | POST | Pipeline complet : tendances → viral → script → publication |
+
+## Persistance (v1.3)
+
+Si `MONGODB_URI` est défini, chaque script généré est sauvegardé dans MongoDB
+et l'historique est rechargé au démarrage du serveur — les scripts survivent
+donc aux redémarrages (utile sur Render, qui redémarre les services au déploiement).
+Sans MongoDB, l'historique reste en mémoire et disparaît au redémarrage.
+
+## Connexion des plateformes (v1.5)
+
+Le dashboard indique pour chaque plateforme si son identifiant API est
+configuré (✅) ou non (⚠️ → publication simulée). Le guide pas à pas pour
+créer chaque compte (TikTok, Instagram, YouTube, X, LinkedIn, Facebook) et
+obtenir chaque clé se trouve dans **[GUIDE-PLATEFORMES.md](GUIDE-PLATEFORMES.md)**.
+Les variables attendues sont listées dans `.env.example`.
 
 ## Déploiement (Render)
 
